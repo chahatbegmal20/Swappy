@@ -1,0 +1,400 @@
+// Atelier Platform - Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTH
+// ============================================
+
+enum Role {
+  USER
+  CREATOR
+  MODERATOR
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING_VERIFICATION
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  username      String        @unique
+  emailVerified DateTime?
+  password      String?       // Null for OAuth-only users
+  name          String?
+  bio           String?       @db.Text
+  avatar        String?       // URL to avatar image
+  coverImage    String?
+  website       String?
+  location      String?
+  
+  role          Role          @default(USER)
+  status        AccountStatus @default(PENDING_VERIFICATION)
+  
+  // Stats
+  followersCount Int         @default(0)
+  followingCount Int         @default(0)
+  postsCount     Int         @default(0)
+  totalLikes     Int         @default(0)
+  totalViews     Int         @default(0)
+  
+  // Timestamps
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lastLoginAt   DateTime?
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  bookmarks     Bookmark[]
+  reports       Report[]      @relation("ReporterUser")
+  reportsAgainst Report[]     @relation("ReportedUser")
+  notifications Notification[]
+  
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([createdAt])
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// CONTENT
+// ============================================
+
+enum PostType {
+  ARTWORK
+  OUTFIT
+  TATTOO
+  BODY_ART
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  MODERATION_PENDING
+  REJECTED
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  type        PostType
+  status      PostStatus @default(PUBLISHED)
+  
+  // Media
+  imageUrl    String     // Primary image (required)
+  imageKey    String     // R2 object key for deletion
+  thumbnailUrl String?   // Optimized thumbnail
+  images      Media[]    // Additional images
+  
+  // Metadata
+  category    Category   @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  tags        Tag[]      @relation("PostTags")
+  toolsUsed   String?    // e.g., "Photoshop, Procreate"
+  location    String?
+  
+  // Flags
+  isNSFW      Boolean    @default(false)
+  isFeatured  Boolean    @default(false)
+  allowComments Boolean  @default(true)
+  
+  // Stats
+  viewsCount    Int      @default(0)
+  likesCount    Int      @default(0)
+  commentsCount Int      @default(0)
+  bookmarksCount Int     @default(0)
+  sharesCount   Int      @default(0)
+  
+  // SEO
+  slug        String     @unique
+  
+  // Timestamps
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  publishedAt DateTime?
+  
+  // Relations
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+  comments    Comment[]
+  likes       Like[]
+  bookmarks   Bookmark[]
+  reports     Report[]
+  
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([publishedAt])
+  @@index([isFeatured])
+  @@index([slug])
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  url       String
+  key       String   // R2 object key
+  type      String   // image/jpeg, image/png, etc.
+  size      Int      // bytes
+  width     Int?
+  height    Int?
+  order     Int      @default(0)
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  
+  createdAt DateTime @default(now())
+  
+  @@index([postId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?  // Icon name or emoji
+  color       String?  // Hex color for UI
+  order       Int      @default(0)
+  
+  posts       Post[]
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([slug])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  usageCount Int     @default(0)
+  
+  posts     Post[]   @relation("PostTags")
+  
+  createdAt DateTime @default(now())
+  
+  @@index([slug])
+  @@index([usageCount])
+}
+
+// ============================================
+// ENGAGEMENT
+// ============================================
+
+model Like {
+  id        String   @id @default(cuid())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  
+  // Nested comments
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  String?
+  replies   Comment[] @relation("CommentReplies")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+}
+
+// ============================================
+// MODERATION
+// ============================================
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE_CONTENT
+  COPYRIGHT_VIOLATION
+  IMPERSONATION
+  HATE_SPEECH
+  VIOLENCE
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reason      ReportReason
+  description String?      @db.Text
+  status      ReportStatus @default(PENDING)
+  
+  // Reporter
+  reporter    User         @relation("ReporterUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId  String
+  
+  // Reported content/user
+  post        Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId      String?
+  
+  reportedUser User?       @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reportedUserId String?
+  
+  // Resolution
+  resolvedBy  String?      // Admin user ID
+  resolvedAt  DateTime?
+  resolution  String?      @db.Text
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  @@index([status])
+  @@index([reporterId])
+  @@index([postId])
+  @@index([reportedUserId])
+}
+
+// ============================================
+// NOTIFICATIONS (Future)
+// ============================================
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  MENTION
+  REPORT_RESOLVED
+  POST_FEATURED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  content   String
+  read      Boolean          @default(false)
+  
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  // Links to relevant entities
+  postId    String?
+  commentId String?
+  actorId   String?          // User who triggered the notification
+  
+  createdAt DateTime         @default(now())
+  
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+// ============================================
+// ANALYTICS (Future)
+// ============================================
+
+model PostView {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String?  // Null for anonymous views
+  ipAddress String?
+  userAgent String?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([postId])
+  @@index([createdAt])
+}
+
