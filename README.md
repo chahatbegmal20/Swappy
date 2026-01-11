@@ -1,4 +1,4 @@
-# 🎨 Atelier - Global Creative Platform
+# 🎨 Swappy - Global Creative Platform
 
 A premium, next-generation platform for showcasing art, fashion, body art, and tattoos. Built with modern web technologies and featuring a stunning 3D UI.
 
