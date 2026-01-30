@@ -27,14 +27,14 @@ After this setup, users can click **"Continue with Google"** to:
 1. Click the **project dropdown** at the top (says "Select a project")
 2. Click **"NEW PROJECT"** button (top right of popup)
 3. Fill in:
-   - **Project name:** `Atelier` (or `My-App-OAuth`)
+   - **Project name:** `Swappy` (or `My-App-OAuth`)
    - **Location:** No organization (unless you have one)
 4. Click **"CREATE"**
 5. Wait 10-20 seconds (you'll see a progress notification)
 
 #### 1.3 Select Your Project
 1. Click the project dropdown again
-2. Click on your new project name (`Atelier`)
+2. Click on your new project name (`Swappy`)
 3. The dashboard will reload with your project selected
 
 ---
@@ -67,7 +67,7 @@ After this setup, users can click **"Continue with Google"** to:
 Fill in the following:
 
 **Required Fields:**
-- **App name:** `Atelier`
+- **App name:** `Swappy`
 - **User support email:** Your email (dropdown)
 - **Developer contact email:** Your email
 
@@ -113,7 +113,7 @@ Your app starts in "Testing" mode, so you need to add test users:
 - Select **"Web application"** from dropdown
 
 **Name:**
-- Enter: `Atelier Web Client`
+- Enter: `Swappy Web Client`
 
 #### 4.3 Authorized JavaScript Origins (Optional)
 This is optional but recommended:
@@ -473,4 +473,6 @@ Once working, users can:
 ---
 
 **Happy coding! If you get stuck, refer back to this guide!** 🎨✨
+
+
 

@@ -96,7 +96,7 @@ A premium, next-generation platform for showcasing art, fashion, body art, and t
 1. **Clone the repository**
 ```bash
 git clone <your-repo>
-cd atelier-platform
+cd swappy
 ```
 
 2. **Install dependencies**
@@ -115,7 +115,7 @@ Edit `.env.local` with your credentials:
 
 ```env
 # Database (Get from Supabase or local Postgres)
-DATABASE_URL="postgresql://user:password@localhost:5432/atelier"
+DATABASE_URL="postgresql://user:password@localhost:5432/swappy"
 
 # NextAuth (Generate secret: openssl rand -base64 32)
 NEXTAUTH_URL="http://localhost:3000"
@@ -129,12 +129,12 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
 R2_ACCOUNT_ID="your-account-id"
 R2_ACCESS_KEY_ID="your-access-key"
 R2_SECRET_ACCESS_KEY="your-secret-key"
-R2_BUCKET_NAME="atelier-uploads"
+R2_BUCKET_NAME="swappy-uploads"
 R2_PUBLIC_URL="https://your-bucket.r2.dev"
 
 # App
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="Atelier"
+NEXT_PUBLIC_APP_NAME="Swappy"
 ```
 
 4. **Set up the database**
@@ -161,7 +161,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Default Admin User
 
 After seeding, you can log in with:
-- Email: `admin@atelier.com`
+- Email: `admin@swappy.com`
 - Password: `password123`
 
 **⚠️ Change this password immediately in production!**
@@ -169,7 +169,7 @@ After seeding, you can log in with:
 ## 📁 Project Structure
 
 ```
-atelier/
+swappy/
 ├── prisma/
 │   ├── schema.prisma          # Database schema
 │   ├── migrations/            # Database migrations
@@ -420,7 +420,7 @@ MIT License - feel free to use this project for learning or building your own pl
 
 For questions or issues:
 - Open an issue on GitHub
-- Email: support@atelier.com (replace with your email)
+- Email: support@swappy.com (replace with your email)
 
 ---
 

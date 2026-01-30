@@ -1,4 +1,4 @@
-# 🚀 Atelier Deployment Checklist
+# 🚀 Swappy Deployment Checklist
 
 Use this checklist to ensure a smooth production deployment.
 

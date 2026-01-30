@@ -91,7 +91,7 @@ async function main() {
   console.log('✅ Created tags')
 
   // Create admin user (for testing)
-  const adminEmail = 'admin@atelier.com'
+  const adminEmail = 'admin@swappy.com'
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
   })
@@ -110,7 +110,7 @@ async function main() {
       },
     })
 
-    console.log('✅ Created admin user (admin@atelier.com / password123)')
+    console.log('✅ Created admin user (admin@swappy.com / password123)')
   }
 
   console.log('🎉 Seed completed successfully!')

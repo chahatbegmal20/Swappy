@@ -45,13 +45,13 @@ export default async function ExplorePage() {
   const posts = await getPosts()
 
   return (
-    <main className="min-h-screen bg-atelier-charcoal">
+    <main className="min-h-screen bg-swappy-charcoal">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-atelier-black/80 backdrop-blur-lg border-b border-white/10">
+      <header className="sticky top-0 z-40 bg-swappy-black/80 backdrop-blur-lg border-b border-white/10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-2xl font-bold gradient-text">
-              Atelier
+              Swappy
             </Link>
             
             <nav className="flex items-center gap-6">
@@ -82,10 +82,10 @@ export default async function ExplorePage() {
       </section>
 
       {/* Filters */}
-      <section className="py-6 border-b border-white/10 sticky top-[73px] z-30 bg-atelier-charcoal/80 backdrop-blur-lg">
+      <section className="py-6 border-b border-white/10 sticky top-[73px] z-30 bg-swappy-charcoal/80 backdrop-blur-lg">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-4 overflow-x-auto">
-            <button className="px-4 py-2 rounded-full bg-atelier-fuchsia text-white font-medium whitespace-nowrap">
+            <button className="px-4 py-2 rounded-full bg-swappy-fuchsia text-white font-medium whitespace-nowrap">
               All
             </button>
             <button className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 transition whitespace-nowrap">
@@ -123,7 +123,7 @@ export default async function ExplorePage() {
                 <Link
                   key={post.id}
                   href={`/post/${post.id}`}
-                  className="group block rounded-xl overflow-hidden bg-atelier-surface border border-white/10 hover:border-white/20 transition card-hover"
+                  className="group block rounded-xl overflow-hidden bg-swappy-surface border border-white/10 hover:border-white/20 transition card-hover"
                 >
                   {/* Image */}
                   <div className="aspect-square relative overflow-hidden bg-black">
@@ -150,7 +150,7 @@ export default async function ExplorePage() {
 
                   {/* Content */}
                   <div className="p-4">
-                    <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-atelier-fuchsia transition">
+                    <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-swappy-fuchsia transition">
                       {post.title}
                     </h3>
 

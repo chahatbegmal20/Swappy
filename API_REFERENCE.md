@@ -1,6 +1,6 @@
-# 📡 Atelier API Reference
+# 📡 Swappy API Reference
 
-Complete API documentation for the Atelier platform.
+Complete API documentation for the Swappy platform.
 
 ## Base URL
 ```
@@ -712,7 +712,7 @@ Use tools like:
 ## Support
 
 For API support:
-- Documentation: https://docs.atelier.com
+- Documentation: https://docs.swappy.com
 - Issues: https://github.com/your-repo/issues
-- Email: api@atelier.com
+- Email: api@swappy.com
 

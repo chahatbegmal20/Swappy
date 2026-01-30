@@ -74,7 +74,7 @@ export default function LoginPage() {
             Welcome Back
           </CardTitle>
           <CardDescription>
-            Sign in to your Atelier account
+            Sign in to your Swappy account
           </CardDescription>
         </CardHeader>
         

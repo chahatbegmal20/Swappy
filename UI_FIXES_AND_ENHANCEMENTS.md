@@ -274,7 +274,7 @@ xl:  4rem    (64px)
 
 Edit `tailwind.config.ts`:
 ```typescript
-'atelier': {
+'swappy': {
   'fuchsia': '#YOUR_COLOR',  // Main brand
   'cyan': '#YOUR_COLOR',     // Accent 1
   'gold': '#YOUR_COLOR',     // Accent 2

@@ -23,7 +23,7 @@ export default function Home() {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-                Atelier
+                Swappy
               </span>
             </div>
             
@@ -263,7 +263,7 @@ export default function Home() {
               Ready to showcase your work?
             </h2>
             <p className="text-xl text-violet-100">
-              Join thousands of creators already sharing their passion on Atelier
+              Join thousands of creators already sharing their passion on Swappy
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -291,7 +291,7 @@ export default function Home() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">Atelier</span>
+              <span className="text-xl font-bold text-white">Swappy</span>
             </div>
             
             <div className="flex gap-8 text-sm">
@@ -302,7 +302,7 @@ export default function Home() {
             </div>
             
             <div className="text-sm text-slate-500">
-              © 2026 Atelier. All rights reserved.
+              © 2026 Swappy. All rights reserved.
             </div>
           </div>
         </div>

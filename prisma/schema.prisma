@@ -1,4 +1,4 @@
-// Atelier Platform - Database Schema
+// Swappy Platform - Database Schema
 generator client {
   provider = "prisma-client-js"
 }

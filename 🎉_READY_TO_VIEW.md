@@ -144,7 +144,7 @@
 
 Open `tailwind.config.ts` and edit:
 ```typescript
-'atelier': {
+'swappy': {
   'fuchsia': '#YOUR_COLOR',  // Change main pink
   'cyan': '#YOUR_COLOR',     // Change blue
   'gold': '#YOUR_COLOR',     // Change gold

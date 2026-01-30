@@ -1,7 +1,7 @@
-# Atelier Setup Script
+# Swappy Setup Script
 # Run this script to quickly configure your environment
 
-Write-Host "🎨 Atelier Platform Setup" -ForegroundColor Cyan
+Write-Host "🎨 Swappy Platform Setup" -ForegroundColor Cyan
 Write-Host "========================`n" -ForegroundColor Cyan
 
 # Check if .env.local exists
@@ -64,14 +64,14 @@ if ($setupDb -eq "Y" -or $setupDb -eq "y") {
             npm run db:seed
             
             Write-Host "`n✅ Database ready! Admin login:" -ForegroundColor Green
-            Write-Host "   Email: admin@atelier.com" -ForegroundColor White
+            Write-Host "   Email: admin@swappy.com" -ForegroundColor White
             Write-Host "   Password: password123" -ForegroundColor White
         }
     }
     elseif ($choice -eq "2") {
         Write-Host "`n💻 Local PostgreSQL:" -ForegroundColor Cyan
-        $dbName = Read-Host "Database name (default: atelier)"
-        if (-not $dbName) { $dbName = "atelier" }
+        $dbName = Read-Host "Database name (default: swappy)"
+        if (-not $dbName) { $dbName = "swappy" }
         
         $dbUser = Read-Host "Database user (default: postgres)"
         if (-not $dbUser) { $dbUser = "postgres" }

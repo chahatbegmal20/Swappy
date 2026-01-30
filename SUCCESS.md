@@ -1,4 +1,4 @@
-# 🎉 SUCCESS! Your Atelier Platform is Running!
+# 🎉 SUCCESS! Your Swappy Platform is Running!
 
 ## ✅ What's Working Right Now
 
@@ -48,7 +48,7 @@ You can fully experience:
 
 1. Go to https://supabase.com
 2. Sign up (free)
-3. Create new project: "atelier-db"
+3. Create new project: "swappy-db"
 4. Wait 2 minutes for setup
 5. Go to Settings → Database → Connection String → URI
 6. Copy the connection string
@@ -110,7 +110,7 @@ tailwind.config.ts            ← Custom colors and theme
 Edit `tailwind.config.ts`:
 
 ```typescript
-'atelier': {
+'swappy': {
   'fuchsia': '#FF006E',  // Change this!
   'cyan': '#00F5FF',     // And this!
   'gold': '#FFB800',     // And this!
@@ -212,7 +212,7 @@ Try these to see instant results:
 
 1. **Change Hero Text**
    - File: `src/app/page.tsx`
-   - Line ~31: Change "Atelier" to your name
+   - Line ~31: Change "Swappy" to your name
    - Save and see it update!
 
 2. **Change Colors**

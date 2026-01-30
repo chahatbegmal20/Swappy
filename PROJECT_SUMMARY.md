@@ -1,8 +1,8 @@
-# 🎨 Atelier Platform - Project Summary
+# 🎨 Swappy Platform - Project Summary
 
 ## Overview
 
-**Atelier** is a premium, next-generation creative platform for showcasing art, fashion, body art, and tattoos. Built with modern web technologies and featuring a stunning 3D-animated UI, it provides creators with a global stage to share their work.
+**Swappy** is a premium, next-generation creative platform for showcasing art, fashion, body art, and tattoos. Built with modern web technologies and featuring a stunning 3D-animated UI, it provides creators with a global stage to share their work.
 
 ## What Has Been Built
 
@@ -123,7 +123,7 @@
 ### 📁 Project Structure
 
 ```
-atelier/
+swappy/
 ├── prisma/
 │   ├── schema.prisma (485 lines, 14 models)
 │   ├── seed.ts (Categories, tags, admin user)
@@ -341,7 +341,7 @@ After launch, track:
 
 - Documentation: This repository
 - Issues: GitHub Issues
-- Email: support@atelier.com
+- Email: support@swappy.com
 - Discord: (to be created)
 
 ---

@@ -90,7 +90,7 @@ export default function SignUpPage() {
             <Sparkles className="w-7 h-7 text-white" />
           </div>
           <CardTitle className="text-3xl font-bold">
-            Join Atelier
+            Join Swappy
           </CardTitle>
           <CardDescription>
             Create your account and start showcasing your work

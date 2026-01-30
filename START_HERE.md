@@ -19,7 +19,7 @@ Edit your `.env.local` file (it's been created) with these minimal settings:
 DATABASE_URL="your-supabase-connection-string-here"
 
 # Option B: Local PostgreSQL (if you have it installed)
-# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/atelier"
+# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/swappy"
 
 # NextAuth Secret (REQUIRED)
 # Generate with: openssl rand -base64 32
@@ -40,7 +40,7 @@ R2_PUBLIC_URL=""
 
 # App URLs (These are fine)
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="Atelier"
+NEXT_PUBLIC_APP_NAME="Swappy"
 ```
 
 ## 🎯 Step 3: Generate NextAuth Secret
@@ -60,7 +60,7 @@ Copy the output and paste it as your `NEXTAUTH_SECRET` in `.env.local`
 1. Go to https://supabase.com
 2. Click "Start your project" (sign up free)
 3. Create new project:
-   - Name: `atelier-db`
+   - Name: `swappy-db`
    - Database Password: (create a strong one, save it!)
    - Region: Choose closest to you
 4. Wait 2 minutes for project to be ready
@@ -90,7 +90,7 @@ npm run db:seed
 ```
 
 This creates categories, tags, and an admin user:
-- Email: `admin@atelier.com`
+- Email: `admin@swappy.com`
 - Password: `password123`
 
 ## ▶️ Step 6: Run the App!
@@ -130,7 +130,7 @@ Then open: http://localhost:3000
 
 ## 🎯 Next Steps After It's Running
 
-1. **Test Login**: Use admin@atelier.com / password123
+1. **Test Login**: Use admin@swappy.com / password123
 2. **Explore Code**: Look at `src/app/page.tsx` for landing page
 3. **Read Docs**: Check out QUICK_START.md for full guide
 4. **Customize**: Change colors in `tailwind.config.ts`

@@ -6,12 +6,12 @@ import { Providers } from '@/components/providers/Providers'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Atelier - Global Creative Platform',
+  title: 'Swappy - Global Creative Platform',
   description: 'Showcase your art, fashion, body art, and tattoos to the world',
   keywords: ['art', 'fashion', 'tattoos', 'body art', 'creative', 'portfolio'],
-  authors: [{ name: 'Atelier' }],
+  authors: [{ name: 'Swappy' }],
   openGraph: {
-    title: 'Atelier - Global Creative Platform',
+    title: 'Swappy - Global Creative Platform',
     description: 'Showcase your art, fashion, body art, and tattoos to the world',
     type: 'website',
     locale: 'en_US',

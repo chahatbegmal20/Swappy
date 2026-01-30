@@ -125,7 +125,7 @@ export default function Hero3D() {
       </Canvas>
       
       {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-atelier-black/50 to-atelier-black pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-swappy-black/50 to-swappy-black pointer-events-none" />
     </div>
   )
 }

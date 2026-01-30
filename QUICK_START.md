@@ -1,6 +1,6 @@
-# ⚡ Atelier - Quick Start Guide
+# ⚡ Swappy - Quick Start Guide
 
-Get Atelier running in **30 minutes**.
+Get Swappy running in **30 minutes**.
 
 ## 📋 Prerequisites
 
@@ -37,7 +37,7 @@ npm install
 # macOS
 brew install postgresql@15
 brew services start postgresql@15
-psql postgres -c "CREATE DATABASE atelier;"
+psql postgres -c "CREATE DATABASE swappy;"
 
 # Windows - Download from postgresql.org and install
 # Then create database using pgAdmin or command line
@@ -49,9 +49,9 @@ psql postgres -c "CREATE DATABASE atelier;"
 
 1. Go to [cloudflare.com](https://cloudflare.com) and sign up (free)
 2. Click "R2" in the sidebar
-3. Click "Create bucket" → Name it "atelier-uploads"
+3. Click "Create bucket" → Name it "swappy-uploads"
 4. Go to "Manage R2 API Tokens" → "Create API Token"
-5. Name: "atelier-app", Permission: "Object Read & Write"
+5. Name: "swappy-app", Permission: "Object Read & Write"
 6. Save the Access Key ID and Secret Access Key
 7. Go back to R2 main page, copy your Account ID
 8. In your bucket settings, enable Public Access and copy the public URL
@@ -61,7 +61,7 @@ psql postgres -c "CREATE DATABASE atelier;"
 **Google OAuth Setup**
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create new project: "Atelier"
+2. Create new project: "Swappy"
 3. Go to "APIs & Services" → "OAuth consent screen"
 4. Choose "External", fill in app name and your email
 5. Go to "Credentials" → "Create Credentials" → "OAuth client ID"
@@ -96,12 +96,12 @@ GOOGLE_CLIENT_SECRET="your-secret"
 R2_ACCOUNT_ID="your-account-id"
 R2_ACCESS_KEY_ID="your-access-key-id"
 R2_SECRET_ACCESS_KEY="your-secret-key"
-R2_BUCKET_NAME="atelier-uploads"
+R2_BUCKET_NAME="swappy-uploads"
 R2_PUBLIC_URL="https://pub-xxx.r2.dev"
 
 # App URLs
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="Atelier"
+NEXT_PUBLIC_APP_NAME="Swappy"
 ```
 
 **Generate NextAuth Secret:**
@@ -126,7 +126,7 @@ npm run db:seed
 This creates:
 - 4 categories (Artwork, Fashion, Tattoos, Body Art)
 - 20 common tags
-- Admin user: `admin@atelier.com` / `password123`
+- Admin user: `admin@swappy.com` / `password123`
 
 ### 7. Start the App (1 minute)
 
@@ -142,7 +142,7 @@ Open [http://localhost:3000](http://localhost:3000)
 2. **Sign Up**: Click "Get Started", create account
 3. **Login**: Sign in with your new account
 4. **Google OAuth**: Try "Continue with Google"
-5. **Admin Access**: Login with `admin@atelier.com` / `password123`
+5. **Admin Access**: Login with `admin@swappy.com` / `password123`
 
 ## 🎉 You're Done!
 
@@ -235,7 +235,7 @@ npm run db:seed
 ### Change Colors
 Edit `tailwind.config.ts`:
 ```typescript
-'atelier': {
+'swappy': {
   'fuchsia': '#FF006E',  // Change to your primary color
   'cyan': '#00F5FF',     // Change to your accent
   // ...
@@ -296,7 +296,7 @@ You now have a fully functional creative platform!
 
 - **Documentation**: Check the other .md files
 - **Issues**: GitHub Issues
-- **Email**: support@atelier.com
+- **Email**: support@swappy.com
 
 ---
 

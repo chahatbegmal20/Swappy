@@ -1,6 +1,6 @@
-# 🚀 Atelier Setup Guide
+# 🚀 Swappy Setup Guide
 
-Complete step-by-step guide to get Atelier running locally and deploy to production.
+Complete step-by-step guide to get Swappy running locally and deploy to production.
 
 ## Table of Contents
 1. [Local Development Setup](#local-development-setup)
@@ -33,7 +33,7 @@ git --version
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd atelier-platform
+cd swappy
 
 # Install dependencies
 npm install
@@ -65,7 +65,7 @@ Now edit `.env.local` - we'll fill in the values step by step below.
 
 2. **Create New Project**
    - Click "New Project"
-   - Name: `atelier-db`
+   - Name: `swappy-db`
    - Database Password: Generate a strong password (save it!)
    - Region: Choose closest to your users
    - Click "Create new project" (takes ~2 minutes)
@@ -102,13 +102,13 @@ Now edit `.env.local` - we'll fill in the values step by step below.
 3. **Create Database**
    ```bash
    psql postgres
-   CREATE DATABASE atelier;
+   CREATE DATABASE swappy;
    \q
    ```
 
 4. **Update .env.local**
    ```env
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/atelier"
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/swappy"
    ```
 
 ---
@@ -127,7 +127,7 @@ Cloudflare R2 is S3-compatible but with **zero egress fees** (AWS charges for do
 
 1. In Cloudflare dashboard, click "R2" in the sidebar
 2. Click "Create bucket"
-3. Name: `atelier-uploads`
+3. Name: `swappy-uploads`
 4. Location: Automatic
 5. Click "Create bucket"
 
@@ -135,7 +135,7 @@ Cloudflare R2 is S3-compatible but with **zero egress fees** (AWS charges for do
 
 1. In R2 page, click "Manage R2 API Tokens"
 2. Click "Create API Token"
-3. Token name: `atelier-app`
+3. Token name: `swappy-app`
 4. Permissions: "Object Read & Write"
 5. Click "Create API Token"
 6. **SAVE THESE** (you can't see them again):
@@ -159,7 +159,7 @@ Cloudflare R2 is S3-compatible but with **zero egress fees** (AWS charges for do
 R2_ACCOUNT_ID="your-account-id"
 R2_ACCESS_KEY_ID="your-access-key-id"
 R2_SECRET_ACCESS_KEY="your-secret-access-key"
-R2_BUCKET_NAME="atelier-uploads"
+R2_BUCKET_NAME="swappy-uploads"
 R2_PUBLIC_URL="https://pub-xxx.r2.dev"
 ```
 
@@ -170,7 +170,7 @@ R2_PUBLIC_URL="https://pub-xxx.r2.dev"
 ### 1. Create Google Cloud Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create new project: "Atelier"
+2. Create new project: "Swappy"
 3. Wait for project creation
 
 ### 2. Enable Google+ API
@@ -185,7 +185,7 @@ R2_PUBLIC_URL="https://pub-xxx.r2.dev"
 2. Choose "External" (unless you have Google Workspace)
 3. Click "Create"
 4. Fill in:
-   - App name: `Atelier`
+   - App name: `Swappy`
    - User support email: Your email
    - Developer contact: Your email
 5. Click "Save and Continue"
@@ -198,7 +198,7 @@ R2_PUBLIC_URL="https://pub-xxx.r2.dev"
 1. Go to "APIs & Services" → "Credentials"
 2. Click "Create Credentials" → "OAuth client ID"
 3. Application type: "Web application"
-4. Name: `Atelier Web`
+4. Name: `Swappy Web`
 5. Authorized redirect URIs:
    ```
    http://localhost:3000/api/auth/callback/google
@@ -241,7 +241,7 @@ NEXTAUTH_SECRET="your-generated-secret-here"
 
 ```env
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="Atelier"
+NEXT_PUBLIC_APP_NAME="Swappy"
 ```
 
 ### 3. Push Database Schema
@@ -263,7 +263,7 @@ npm run db:seed
 This creates:
 - 4 categories (Artwork, Fashion, Tattoos, Body Art)
 - 20 common tags
-- Admin user (email: `admin@atelier.com`, password: `password123`)
+- Admin user (email: `admin@swappy.com`, password: `password123`)
 
 ### 5. Start Development Server
 
@@ -279,7 +279,7 @@ Open [http://localhost:3000](http://localhost:3000)
 2. **Sign Up**: Create a new account
 3. **Login**: Try logging in
 4. **Google OAuth**: Click "Continue with Google"
-5. **Admin Login**: Use `admin@atelier.com` / `password123`
+5. **Admin Login**: Use `admin@swappy.com` / `password123`
 
 ---
 
@@ -398,7 +398,7 @@ npm run build
 
 - Check the [README.md](README.md) for full documentation
 - Open an issue on GitHub
-- Email: support@atelier.com
+- Email: support@swappy.com
 
 ---
 
