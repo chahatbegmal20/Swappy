@@ -1,0 +1,38 @@
+[project]
+name = "swappy"
+version = "1.0.0"
+description = "Global Digital Intelligence Platform for Content Creators"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "python-multipart",
+  "python-jose[cryptography]",
+  "passlib[bcrypt]",
+  "bcrypt",
+  "sqlalchemy",
+  "asyncpg",
+  "alembic",
+  "psycopg2-binary",
+  "pydantic",
+  "pydantic-settings",
+  "redis",
+  "celery",
+  "boto3",
+  "numpy",
+  "pandas",
+  "scikit-learn",
+  "xgboost",
+  "shap",
+  "sentence-transformers",
+  "torch",
+  "torchvision",
+  "librosa",
+  "Pillow",
+  "httpx",
+  "python-dotenv",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

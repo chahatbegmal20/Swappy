@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ML artifacts
+data/models/
+data/datasets/*.csv
+data/datasets/*.parquet
+*.pt
+*.onnx
+*.pkl
+*.joblib
+
+# Docker volumes
+postgres_data/
+minio_data/
+redis_data/
+
+# Logs
+*.log
+logs/
