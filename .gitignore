@@ -13,11 +13,19 @@ node_modules/
 .next/
 out/
 .turbo/
+apps/web/.next/
+apps/web/node_modules/
 
-# Environment
+# Environment / secrets
 .env
 .env.local
 .env.production
+
+# Database
+*.db
+
+# Uploads
+local_uploads/
 
 # IDE
 .vscode/
