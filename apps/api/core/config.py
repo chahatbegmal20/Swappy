@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     DEVICE: str = "cpu"
     APP_ENV: str = "development"
     FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
 
     # OAuth — leave blank to disable a provider
     GOOGLE_CLIENT_ID: str = ""
@@ -25,7 +26,7 @@ class Settings(BaseSettings):
     TWITTER_CLIENT_ID: str = ""
     TWITTER_CLIENT_SECRET: str = ""
 
-    model_config = {"env_file": "../../.env", "extra": "ignore"}
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()
