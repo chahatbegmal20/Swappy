@@ -81,7 +81,8 @@ OAUTH_PROVIDERS: dict[str, dict] = {
 # ── helpers ───────────────────────────────────────────────────────
 
 def _get_redirect_uri(provider: str) -> str:
-    return f"{settings.FRONTEND_URL.rstrip('/')}/auth/callback?provider={provider}"
+    """Redirect URI must point to the backend callback so it can exchange the code."""
+    return f"{settings.BACKEND_URL.rstrip('/')}/api/v1/auth/social/{provider}/callback"
 
 
 def _make_code_challenge(verifier: str) -> str:
