@@ -92,12 +92,15 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-### 3. Run Database Migrations
+### 3. Database (MongoDB)
+
+No migrations are required. The app uses **MongoDB** via the **Beanie** ODM and
+creates collections and indexes automatically on startup. Just set your
+connection string in `.env`:
 
 ```bash
-cd packages/db
-alembic upgrade head
-cd ../..
+DATABASE_URL=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/
+MONGO_DB_NAME=swappy
 ```
 
 ### 4. Start the API

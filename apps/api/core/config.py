@@ -2,13 +2,14 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "sqlite+aiosqlite:///./swappy.db"
-    DATABASE_URL_SYNC: str = "sqlite:///./swappy.db"
+    DATABASE_URL: str = "mongodb://localhost:27017"
+    DATABASE_URL_SYNC: str = "mongodb://localhost:27017"
+    MONGO_DB_NAME: str = "swappy"
     REDIS_URL: str = "redis://localhost:6379/0"
     S3_ENDPOINT: str = "http://localhost:9000"
     S3_ACCESS_KEY: str = "minioadmin"
     S3_SECRET_KEY: str = "minioadmin"
-    S3_BUCKET: str = "swappy-uploads"
+    S3_BUCKET: str = "swappy-prod-uploads"
     JWT_SECRET: str = "swappy-dev-secret-change-in-production"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_MINUTES: int = 1440

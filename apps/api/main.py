@@ -7,15 +7,12 @@ from apps.api.core.config import settings
 from apps.api.core.database import init_db
 from apps.api.routers import auth, dashboard, projects, scoring, trends, uploads
 from apps.api.services.trend_service import seed_demo_trends
-from apps.api.core.database import async_session
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    async with async_session() as session:
-        await seed_demo_trends(session)
-        await session.commit()
+    await seed_demo_trends()
     yield
 
 

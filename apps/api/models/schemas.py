@@ -166,7 +166,7 @@ class AnalyzeRequest(BaseModel):
 
 # Trends
 class TrendResponse(BaseModel):
-    id: int
+    id: str
     source: str
     category: Optional[str]
     topic: str

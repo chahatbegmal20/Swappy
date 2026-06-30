@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from collections import defaultdict
 
-from apps.api.core.database import get_db
+from fastapi import APIRouter, Depends
+
 from apps.api.core.security import get_current_user
 from apps.api.models.database import ContentScore, ContentUpload, Project, TrendSignal, User
 from apps.api.models.schemas import (
@@ -19,66 +18,51 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("/creator", response_model=CreatorDashboard)
 async def creator_dashboard(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
-    proj_count = await db.execute(
-        select(func.count(Project.id)).where(Project.user_id == current_user.id)
-    )
-    total_projects = proj_count.scalar() or 0
+    projects = await Project.find(Project.user_id == current_user.id).to_list()
+    project_ids = [p.id for p in projects]
+    project_by_id = {p.id: p for p in projects}
+    total_projects = len(projects)
 
-    upload_count = await db.execute(
-        select(func.count(ContentUpload.id))
-        .join(Project, ContentUpload.project_id == Project.id)
-        .where(Project.user_id == current_user.id)
-    )
-    total_uploads = upload_count.scalar() or 0
+    if not project_ids:
+        return CreatorDashboard(
+            total_projects=0,
+            total_uploads=0,
+            average_viability=None,
+            best_project=None,
+            recent_scores=[],
+            score_history=[],
+        )
 
-    avg_result = await db.execute(
-        select(func.avg(ContentScore.overall_viability))
-        .join(Project, ContentScore.project_id == Project.id)
-        .where(Project.user_id == current_user.id)
-    )
-    average_viability = avg_result.scalar()
+    total_uploads = await ContentUpload.find(
+        {"project_id": {"$in": project_ids}}
+    ).count()
 
+    scores = await ContentScore.find({"project_id": {"$in": project_ids}}).to_list()
+
+    average_viability = None
     best_project = None
-    best_score_result = await db.execute(
-        select(ContentScore)
-        .join(Project, ContentScore.project_id == Project.id)
-        .where(Project.user_id == current_user.id)
-        .order_by(ContentScore.overall_viability.desc())
-        .limit(1)
-    )
-    best_score = best_score_result.scalar_one_or_none()
-    if best_score:
-        bp_result = await db.execute(select(Project).where(Project.id == best_score.project_id))
-        bp = bp_result.scalar_one_or_none()
+    if scores:
+        average_viability = sum(s.overall_viability for s in scores) / len(scores)
+        best_score = max(scores, key=lambda s: s.overall_viability)
+        bp = project_by_id.get(best_score.project_id)
         if bp:
             best_project = ProjectResponse.model_validate(bp)
 
-    recent_result = await db.execute(
-        select(ContentScore)
-        .join(Project, ContentScore.project_id == Project.id)
-        .where(Project.user_id == current_user.id)
-        .order_by(ContentScore.scored_at.desc())
-        .limit(10)
-    )
-    recent_scores = [ScoreResponse.model_validate(s) for s in recent_result.scalars().all()]
+    recent_scores = [
+        ScoreResponse.model_validate(s)
+        for s in sorted(scores, key=lambda s: s.scored_at, reverse=True)[:10]
+    ]
 
-    history_result = await db.execute(
-        select(ContentScore.scored_at, ContentScore.overall_viability)
-        .join(Project, ContentScore.project_id == Project.id)
-        .where(Project.user_id == current_user.id)
-        .order_by(ContentScore.scored_at.asc())
-    )
     score_history = [
-        {"scored_at": str(row.scored_at), "overall_viability": row.overall_viability}
-        for row in history_result.all()
+        {"scored_at": str(s.scored_at), "overall_viability": s.overall_viability}
+        for s in sorted(scores, key=lambda s: s.scored_at)
     ]
 
     return CreatorDashboard(
         total_projects=total_projects,
         total_uploads=total_uploads,
-        average_viability=round(average_viability, 4) if average_viability else None,
+        average_viability=round(average_viability, 4) if average_viability is not None else None,
         best_project=best_project,
         recent_scores=recent_scores,
         score_history=score_history,
@@ -86,55 +70,57 @@ async def creator_dashboard(
 
 
 @router.get("/market", response_model=MarketOverview)
-async def market_overview(db: AsyncSession = Depends(get_db)):
-    hot = await db.execute(
-        select(TrendSignal)
-        .where(TrendSignal.signal_type == "hot")
-        .order_by(TrendSignal.velocity.desc())
+async def market_overview():
+    hot = (
+        await TrendSignal.find(TrendSignal.signal_type == "hot")
+        .sort(-TrendSignal.velocity)
         .limit(10)
+        .to_list()
     )
-    hot_trends = [TrendResponse.model_validate(t) for t in hot.scalars().all()]
+    hot_trends = [TrendResponse.model_validate(t) for t in hot]
 
-    emerging = await db.execute(
-        select(TrendSignal)
-        .where(TrendSignal.signal_type == "emerging")
-        .order_by(TrendSignal.velocity.desc())
+    emerging = (
+        await TrendSignal.find(TrendSignal.signal_type == "emerging")
+        .sort(-TrendSignal.velocity)
         .limit(10)
+        .to_list()
     )
-    emerging_trends = [TrendResponse.model_validate(t) for t in emerging.scalars().all()]
+    emerging_trends = [TrendResponse.model_validate(t) for t in emerging]
 
-    declining = await db.execute(
-        select(TrendSignal)
-        .where(TrendSignal.signal_type == "declining")
-        .order_by(TrendSignal.velocity.asc())
+    declining = (
+        await TrendSignal.find(TrendSignal.signal_type == "declining")
+        .sort(+TrendSignal.velocity)
         .limit(10)
+        .to_list()
     )
-    declining_trends = [TrendResponse.model_validate(t) for t in declining.scalars().all()]
+    declining_trends = [TrendResponse.model_validate(t) for t in declining]
 
-    cat_result = await db.execute(
-        select(TrendSignal.category, func.count(TrendSignal.id).label("count"))
-        .where(TrendSignal.category.isnot(None))
-        .group_by(TrendSignal.category)
-        .order_by(func.count(TrendSignal.id).desc())
-        .limit(10)
-    )
-    top_categories = [{"category": row.category, "count": row.count} for row in cat_result.all()]
+    all_signals = await TrendSignal.find_all().to_list()
 
-    region_result = await db.execute(
-        select(
-            TrendSignal.region,
-            func.count(TrendSignal.id).label("count"),
-            func.avg(TrendSignal.velocity).label("avg_velocity"),
-        )
-        .where(TrendSignal.region.isnot(None))
-        .group_by(TrendSignal.region)
-        .order_by(func.count(TrendSignal.id).desc())
-        .limit(10)
-    )
-    regional_highlights = [
-        {"region": row.region, "count": row.count, "avg_velocity": round(row.avg_velocity, 2)}
-        for row in region_result.all()
+    cat_counts: dict[str, int] = defaultdict(int)
+    region_signals: dict[str, list[TrendSignal]] = defaultdict(list)
+    for s in all_signals:
+        if s.category:
+            cat_counts[s.category] += 1
+        if s.region:
+            region_signals[s.region].append(s)
+
+    top_categories = [
+        {"category": cat, "count": count}
+        for cat, count in sorted(cat_counts.items(), key=lambda x: x[1], reverse=True)[:10]
     ]
+
+    regional_highlights = []
+    for region, items in region_signals.items():
+        count = len(items)
+        avg_velocity = sum(i.velocity for i in items) / count if count else 0.0
+        regional_highlights.append({
+            "region": region,
+            "count": count,
+            "avg_velocity": round(avg_velocity, 2),
+        })
+    regional_highlights.sort(key=lambda r: r["count"], reverse=True)
+    regional_highlights = regional_highlights[:10]
 
     return MarketOverview(
         hot_trends=hot_trends,

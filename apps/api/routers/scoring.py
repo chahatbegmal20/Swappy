@@ -2,13 +2,9 @@ import os
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from apps.api.core.database import get_db
 from apps.api.core.security import get_current_user
-from apps.api.models.database import ContentScore, Project, User
+from apps.api.models.database import ContentScore, ContentUpload, Project, User
 from apps.api.models.schemas import AnalyzeRequest, ScoreResponse
 
 logger = logging.getLogger(__name__)
@@ -27,49 +23,48 @@ def _get_pipeline():
     return _pipeline
 
 
+async def _get_owned_project(project_id: str, user: User) -> Project | None:
+    project = await Project.get(project_id)
+    if not project or project.user_id != user.id:
+        return None
+    return project
+
+
 @router.post("/analyze", response_model=ScoreResponse, status_code=status.HTTP_201_CREATED)
 async def analyze_project(
     body: AnalyzeRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Project)
-        .options(selectinload(Project.uploads))
-        .where(Project.id == body.project_id, Project.user_id == current_user.id)
-    )
-    project = result.scalar_one_or_none()
+    project = await _get_owned_project(body.project_id, current_user)
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
+    uploads = await ContentUpload.find(ContentUpload.project_id == project.id).to_list()
     upload_file_paths = []
-    if project.uploads:
-        for upload in project.uploads:
-            local_path = os.path.join("local_uploads", upload.s3_key) if upload.s3_key else ""
-            upload_file_paths.append({
-                "local_path": local_path,
-                "content_type": upload.content_type,
-                "filename": upload.original_filename,
-            })
+    for upload in uploads:
+        local_path = os.path.join("local_uploads", upload.s3_key) if upload.s3_key else ""
+        upload_file_paths.append({
+            "local_path": local_path,
+            "content_type": upload.content_type,
+            "filename": upload.original_filename,
+        })
 
     pipeline = _get_pipeline()
     score_data = pipeline.analyze(
         title=project.name,
         description=project.description,
-        hashtags=project.hashtags if hasattr(project, "hashtags") else None,
-        genre_tags=project.genres if hasattr(project, "genres") else None,
-        mood_tags=project.moods if hasattr(project, "moods") else None,
+        hashtags=project.hashtags,
+        genre_tags=project.genres,
+        mood_tags=project.moods,
         target_platform=project.target_platform,
         target_audience=project.target_audience,
-        language=project.language if hasattr(project, "language") else "en",
-        region=project.region if hasattr(project, "region") else None,
+        language=project.language or "en",
+        region=project.region,
         upload_file_paths=upload_file_paths,
     )
 
     score = ContentScore(project_id=project.id, **score_data)
-    db.add(score)
-    await db.flush()
-    await db.refresh(score)
+    await score.insert()
 
     return ScoreResponse.model_validate(score)
 
@@ -78,41 +73,31 @@ async def analyze_project(
 async def get_project_scores(
     project_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
-    proj_result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.user_id == current_user.id)
-    )
-    if not proj_result.scalar_one_or_none():
+    if not await _get_owned_project(project_id, current_user):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    result = await db.execute(
-        select(ContentScore)
-        .where(ContentScore.project_id == project_id)
-        .order_by(ContentScore.scored_at.desc())
+    scores = (
+        await ContentScore.find(ContentScore.project_id == project_id)
+        .sort(-ContentScore.scored_at)
+        .to_list()
     )
-    return [ScoreResponse.model_validate(s) for s in result.scalars().all()]
+    return [ScoreResponse.model_validate(s) for s in scores]
 
 
 @router.get("/{project_id}/latest", response_model=ScoreResponse)
 async def get_latest_score(
     project_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
-    proj_result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.user_id == current_user.id)
-    )
-    if not proj_result.scalar_one_or_none():
+    if not await _get_owned_project(project_id, current_user):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    result = await db.execute(
-        select(ContentScore)
-        .where(ContentScore.project_id == project_id)
-        .order_by(ContentScore.scored_at.desc())
-        .limit(1)
+    score = (
+        await ContentScore.find(ContentScore.project_id == project_id)
+        .sort(-ContentScore.scored_at)
+        .first_or_none()
     )
-    score = result.scalar_one_or_none()
     if not score:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No scores found")
     return ScoreResponse.model_validate(score)

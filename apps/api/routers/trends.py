@@ -1,9 +1,7 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Query
 
-from apps.api.core.database import get_db
 from apps.api.models.schemas import TrendResponse
 from apps.api.services.trend_service import (
     get_heatmap,
@@ -21,10 +19,9 @@ async def list_trends(
     region: Optional[str] = Query(None),
     signal_type: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db),
 ):
     trends = await get_trends(
-        db, category=category, region=region, signal_type=signal_type, limit=limit
+        category=category, region=region, signal_type=signal_type, limit=limit
     )
     return [TrendResponse.model_validate(t) for t in trends]
 
@@ -33,17 +30,16 @@ async def list_trends(
 async def search(
     q: str = Query(..., min_length=1),
     limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db),
 ):
-    trends = await search_trends(db, query=q, limit=limit)
+    trends = await search_trends(query=q, limit=limit)
     return [TrendResponse.model_validate(t) for t in trends]
 
 
 @router.get("/heatmap")
-async def heatmap(db: AsyncSession = Depends(get_db)):
-    return await get_heatmap(db)
+async def heatmap():
+    return await get_heatmap()
 
 
 @router.get("/{topic}/trajectory")
-async def trajectory(topic: str, db: AsyncSession = Depends(get_db)):
-    return await get_trajectory(db, topic=topic)
+async def trajectory(topic: str):
+    return await get_trajectory(topic=topic)

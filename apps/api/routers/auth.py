@@ -10,18 +10,15 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.core.config import settings
-from apps.api.core.database import get_db
 from apps.api.core.security import (
     create_access_token,
     get_current_user,
     hash_password,
     verify_password,
 )
-from apps.api.models.database import SocialAccount, User
+from apps.api.models.database import SocialAccount, User, utcnow
 from apps.api.models.schemas import (
     PhoneLoginRequest,
     PhoneVerifyRequest,
@@ -92,7 +89,6 @@ def _make_code_challenge(verifier: str) -> str:
 
 
 async def _find_or_create_social_user(
-    db: AsyncSession,
     provider: str,
     provider_user_id: str,
     email: Optional[str],
@@ -102,26 +98,22 @@ async def _find_or_create_social_user(
     refresh_token: Optional[str] = None,
     raw_data: Optional[dict] = None,
 ) -> User:
-    result = await db.execute(
-        select(SocialAccount).where(
-            SocialAccount.provider == provider,
-            SocialAccount.provider_user_id == provider_user_id,
-        )
+    existing_link = await SocialAccount.find_one(
+        SocialAccount.provider == provider,
+        SocialAccount.provider_user_id == provider_user_id,
     )
-    existing_link = result.scalar_one_or_none()
 
     if existing_link:
-        user_result = await db.execute(select(User).where(User.id == existing_link.user_id))
-        user = user_result.scalar_one()
+        user = await User.get(existing_link.user_id)
         existing_link.access_token = access_token
         existing_link.refresh_token = refresh_token
         existing_link.raw_data = raw_data
+        await existing_link.save()
         return user
 
     user: Optional[User] = None
     if email:
-        user_result = await db.execute(select(User).where(User.email == email))
-        user = user_result.scalar_one_or_none()
+        user = await User.find_one(User.email == email)
 
     if user is None:
         user = User(
@@ -130,9 +122,7 @@ async def _find_or_create_social_user(
             auth_provider=provider,
             avatar_url=avatar,
         )
-        db.add(user)
-        await db.flush()
-        await db.refresh(user)
+        await user.insert()
 
     social = SocialAccount(
         user_id=user.id,
@@ -145,8 +135,7 @@ async def _find_or_create_social_user(
         refresh_token=refresh_token,
         raw_data=raw_data,
     )
-    db.add(social)
-    await db.flush()
+    await social.insert()
 
     return user
 
@@ -264,9 +253,9 @@ async def _exchange_code_for_profile(provider: str, code: str, state_data: dict)
 # ── email auth ────────────────────────────────────────────────────
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(User).where(User.email == body.email))
-    if existing.scalar_one_or_none():
+async def register(body: UserRegister):
+    existing = await User.find_one(User.email == body.email)
+    if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     user = User(
@@ -277,18 +266,15 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
         region=body.region,
         language=body.language,
     )
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
+    await user.insert()
 
     token = create_access_token({"sub": str(user.id)})
     return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == body.email))
-    user = result.scalar_one_or_none()
+async def login(body: UserLogin):
+    user = await User.find_one(User.email == body.email)
     if not user or not user.hashed_password or not verify_password(body.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
@@ -347,7 +333,6 @@ async def social_callback(
     provider: str,
     code: str = Query(...),
     state: str = Query(...),
-    db: AsyncSession = Depends(get_db),
 ):
     """
     Step 2: Provider redirects here after user consents.
@@ -364,7 +349,6 @@ async def social_callback(
     profile = await _exchange_code_for_profile(provider, code, state_data)
 
     user = await _find_or_create_social_user(
-        db=db,
         provider=provider,
         provider_user_id=profile["provider_user_id"],
         email=profile.get("email"),
@@ -386,7 +370,7 @@ async def social_callback(
 
 
 @router.post("/social", response_model=TokenResponse)
-async def social_login_direct(body: SocialLoginRequest, db: AsyncSession = Depends(get_db)):
+async def social_login_direct(body: SocialLoginRequest):
     """
     Direct token exchange (for Google ID tokens from GIS popup, etc.).
     The frontend passes a provider token directly; we verify it.
@@ -401,7 +385,6 @@ async def social_login_direct(body: SocialLoginRequest, db: AsyncSession = Depen
     profile = await verifier(body.token)
 
     user = await _find_or_create_social_user(
-        db=db,
         provider=body.provider,
         provider_user_id=profile["provider_user_id"],
         email=profile.get("email"),
@@ -452,12 +435,9 @@ async def list_providers():
 @router.get("/social/accounts", response_model=list[SocialAccountResponse])
 async def list_social_accounts(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(SocialAccount).where(SocialAccount.user_id == current_user.id)
-    )
-    return [SocialAccountResponse.model_validate(sa) for sa in result.scalars().all()]
+    accounts = await SocialAccount.find(SocialAccount.user_id == current_user.id).to_list()
+    return [SocialAccountResponse.model_validate(sa) for sa in accounts]
 
 
 # ── phone auth (OTP) ─────────────────────────────────────────────
@@ -483,7 +463,7 @@ async def phone_send_otp(body: PhoneLoginRequest):
 
 
 @router.post("/phone/verify", response_model=TokenResponse)
-async def phone_verify(body: PhoneVerifyRequest, db: AsyncSession = Depends(get_db)):
+async def phone_verify(body: PhoneVerifyRequest):
     entry = _otp_store.get(body.phone)
     if not entry:
         raise HTTPException(status_code=400, detail="No OTP requested for this number. Send OTP first.")
@@ -502,8 +482,7 @@ async def phone_verify(body: PhoneVerifyRequest, db: AsyncSession = Depends(get_
 
     _otp_store.pop(body.phone, None)
 
-    result = await db.execute(select(User).where(User.phone == body.phone))
-    user = result.scalar_one_or_none()
+    user = await User.find_one(User.phone == body.phone)
 
     if user is None:
         user = User(
@@ -511,9 +490,7 @@ async def phone_verify(body: PhoneVerifyRequest, db: AsyncSession = Depends(get_
             name=f"User {body.phone[-4:]}",
             auth_provider="phone",
         )
-        db.add(user)
-        await db.flush()
-        await db.refresh(user)
+        await user.insert()
 
     token = create_access_token({"sub": str(user.id)})
     return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
@@ -530,12 +507,11 @@ async def get_me(current_user: User = Depends(get_current_user)):
 async def update_me(
     updates: dict,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     allowed_fields = {"name", "region", "language", "avatar_url", "phone", "email"}
     for key, value in updates.items():
         if key in allowed_fields:
             setattr(current_user, key, value)
-    await db.flush()
-    await db.refresh(current_user)
+    current_user.updated_at = utcnow()
+    await current_user.save()
     return UserResponse.model_validate(current_user)

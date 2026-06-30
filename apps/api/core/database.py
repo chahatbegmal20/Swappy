@@ -1,37 +1,44 @@
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import declarative_base
-from typing import AsyncGenerator
+"""MongoDB connection and Beanie ODM initialization."""
+import logging
+
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
 
 from apps.api.core.config import settings
 
-connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+logger = logging.getLogger(__name__)
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=False,
-    connect_args=connect_args,
-)
-
-async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-Base = declarative_base()
+client: AsyncIOMotorClient | None = None
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+def get_client() -> AsyncIOMotorClient:
+    global client
+    if client is None:
+        client = AsyncIOMotorClient(settings.DATABASE_URL)
+    return client
 
 
 async def init_db() -> None:
-    async with engine.begin() as conn:
-        from apps.api.models.database import (  # noqa: F401
-            User, Project, ContentUpload, ContentScore, TrendSignal,
-        )
-        await conn.run_sync(Base.metadata.create_all)
+    """Connect to MongoDB and register all Beanie document models."""
+    from apps.api.models.database import (
+        User,
+        SocialAccount,
+        Project,
+        ContentUpload,
+        ContentScore,
+        TrendSignal,
+    )
+
+    db = get_client()[settings.MONGO_DB_NAME]
+    await init_beanie(
+        database=db,
+        document_models=[
+            User,
+            SocialAccount,
+            Project,
+            ContentUpload,
+            ContentScore,
+            TrendSignal,
+        ],
+    )
+    logger.info("Beanie initialized against MongoDB database '%s'", settings.MONGO_DB_NAME)
