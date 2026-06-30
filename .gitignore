@@ -30,6 +30,7 @@ local_uploads/
 # IDE
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 
