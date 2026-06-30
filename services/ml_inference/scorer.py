@@ -1,5 +1,7 @@
 """ML scoring engine using XGBoost + MLP ensemble for content viability prediction."""
 import logging
+import os
+from pathlib import Path
 from typing import Optional
 import numpy as np
 
@@ -34,15 +36,30 @@ TABULAR_FEATURE_KEYS = [
     "google_interest_now", "google_trend_velocity", "google_is_rising",
     "wiki_pageviews_norm", "hn_relevance_score", "composite_trend_score",
     "trend_similarity",
+    "sentiment_score",  # real value when available; 0.0 otherwise
 ]
 
 
 def _build_xgb_models():
-    """Build calibrated XGBoost models with synthetic training data."""
+    """Load trained virality model from disk; fall back to synthetic for other targets."""
     global _xgb_models
     if _xgb_models:
         return _xgb_models
 
+    # ── 1. Try loading the real trained classifier ────────────────────────────
+    try:
+        import joblib
+        model_dir = Path(os.environ.get("MODEL_PATH", "./data/models"))
+        virality_path = model_dir / "xgb_virality.pkl"
+        scaler_path = model_dir / "xgb_scaler.pkl"
+        if virality_path.exists() and scaler_path.exists():
+            _xgb_models["virality_classifier"] = joblib.load(virality_path)
+            _xgb_models["scaler"] = joblib.load(scaler_path)
+            logger.info("Loaded trained XGBoost virality model from disk")
+    except Exception as e:
+        logger.warning(f"Could not load trained virality model: {e}")
+
+    # ── 2. Build synthetic regressors for the other score targets ─────────────
     try:
         from xgboost import XGBRegressor
         from sklearn.preprocessing import StandardScaler
@@ -50,17 +67,20 @@ def _build_xgb_models():
         n_features = len(TABULAR_FEATURE_KEYS)
         n_samples = 2000
         rng = np.random.RandomState(42)
-
         X_train = rng.rand(n_samples, n_features)
 
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X_train)
-        _xgb_models["scaler"] = scaler
+        if "scaler" not in _xgb_models:
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X_train)
+            _xgb_models["scaler"] = scaler
+        else:
+            X_scaled = _xgb_models["scaler"].transform(X_train)
 
         for target in SCORE_TARGETS:
+            if target == "virality_probability" and "virality_classifier" in _xgb_models:
+                continue  # real trained model handles this target
             weights = rng.dirichlet(np.ones(n_features))
             y = np.clip(X_train @ weights + rng.normal(0, 0.05, n_samples), 0.05, 0.95)
-
             model = XGBRegressor(
                 n_estimators=100,
                 max_depth=4,
@@ -71,7 +91,7 @@ def _build_xgb_models():
             model.fit(X_scaled, y)
             _xgb_models[target] = model
 
-        logger.info("XGBoost models built and calibrated")
+        logger.info("XGBoost models ready")
 
     except Exception as e:
         logger.warning(f"XGBoost model building failed: {e}")
@@ -250,10 +270,15 @@ class ContentScorer:
 
             scores = {}
             for target in SCORE_TARGETS:
-                model = self.models.get(target)
-                if model:
-                    pred = model.predict(X_scaled)[0]
-                    scores[target] = float(np.clip(pred, 0.05, 0.95))
+                if target == "virality_probability" and "virality_classifier" in self.models:
+                    # Real trained binary classifier → use predicted probability
+                    prob = self.models["virality_classifier"].predict_proba(X_scaled)[0][1]
+                    scores[target] = float(np.clip(prob, 0.05, 0.95))
+                else:
+                    model = self.models.get(target)
+                    if model:
+                        pred = model.predict(X_scaled)[0]
+                        scores[target] = float(np.clip(pred, 0.05, 0.95))
 
             return scores
         except Exception as e:

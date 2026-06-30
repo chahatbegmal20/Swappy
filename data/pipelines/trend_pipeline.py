@@ -1,4 +1,4 @@
-"""Trend ingestion pipeline — runs as a scheduled task.
+ """Trend ingestion pipeline — runs as a scheduled task.
 
 In production, this would be an Airflow/Dagster DAG.
 For MVP, it's a standalone script that can be run via cron or celery beat.

@@ -5,12 +5,13 @@
   "description": "Global Digital Intelligence Platform for Content Creators",
   "scripts": {
     "dev:web": "cd apps/web && npm run dev",
-    "dev:api": "cd apps/api && uvicorn main:app --reload --port 8000",
+    "dev:api": "node scripts/dev-api.mjs",
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
     "build:web": "cd apps/web && npm run build",
     "lint": "cd apps/web && npm run lint",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "start": "npm run dev"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
