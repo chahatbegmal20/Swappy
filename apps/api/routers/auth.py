@@ -1,4 +1,4 @@
-import hashlib
+﻿import hashlib
 import logging
 import os
 import random
@@ -22,6 +22,7 @@ from apps.api.models.database import SocialAccount, User, utcnow
 from apps.api.models.schemas import (
     PhoneLoginRequest,
     PhoneVerifyRequest,
+    SetPasswordRequest,
     SocialAccountResponse,
     SocialLoginRequest,
     TokenResponse,
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# ── stores (use Redis in production) ─────────────────────────────
+# â”€â”€ stores (use Redis in production) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _otp_store: dict[str, dict] = {}
 _oauth_state_store: dict[str, dict] = {}
 
@@ -44,7 +45,7 @@ OAUTH_STATE_TTL = 600
 
 CALLBACK_BASE = settings.FRONTEND_URL.rstrip("/")
 
-# ── OAuth provider config ────────────────────────────────────────
+# â”€â”€ OAuth provider config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 OAUTH_PROVIDERS: dict[str, dict] = {
     "google": {
@@ -75,7 +76,7 @@ OAUTH_PROVIDERS: dict[str, dict] = {
 }
 
 
-# ── helpers ───────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _get_redirect_uri(provider: str) -> str:
     """Redirect URI must point to the backend callback so it can exchange the code."""
@@ -250,13 +251,26 @@ async def _exchange_code_for_profile(provider: str, code: str, state_data: dict)
     raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
 
-# ── email auth ────────────────────────────────────────────────────
+# â”€â”€ email auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: UserRegister):
     existing = await User.find_one(User.email == body.email)
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+        # If the pre-existing account is a social one, give the user actionable guidance
+        # instead of a generic conflict â€” otherwise they don't know how to get in.
+        if existing.auth_provider != "email":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"This email is already linked to {existing.auth_provider.capitalize()}. "
+                    f"Please sign in with {existing.auth_provider.capitalize()} instead."
+                ),
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered. Try signing in instead.",
+        )
 
     user = User(
         email=body.email,
@@ -269,20 +283,42 @@ async def register(body: UserRegister):
     await user.insert()
 
     token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
+    return TokenResponse(access_token=token, user=UserResponse.from_user(user))
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(body: UserLogin):
     user = await User.find_one(User.email == body.email)
-    if not user or not user.hashed_password or not verify_password(body.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No account found for that email.",
+        )
+
+    # Social-only account: it has never had a password. Tell the user *why*,
+    # so they know to click the Google/Instagram/Twitter button instead of guessing.
+    if not user.hashed_password:
+        provider = (user.auth_provider or "social").capitalize()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=(
+                f"This account uses {provider} sign-in. "
+                f"Sign in with {provider}, or set a password from Settings after signing in."
+            ),
+        )
+
+    if not verify_password(body.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password.",
+        )
 
     token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
+    return TokenResponse(access_token=token, user=UserResponse.from_user(user))
 
 
-# ── OAuth2 authorization code flow ───────────────────────────────
+# â”€â”€ OAuth2 authorization code flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/social/{provider}/authorize")
 async def social_authorize(provider: str):
@@ -394,7 +430,7 @@ async def social_login_direct(body: SocialLoginRequest):
     )
 
     token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
+    return TokenResponse(access_token=token, user=UserResponse.from_user(user))
 
 
 async def _verify_google_id_token(token: str) -> dict:
@@ -440,7 +476,7 @@ async def list_social_accounts(
     return [SocialAccountResponse.model_validate(sa) for sa in accounts]
 
 
-# ── phone auth (OTP) ─────────────────────────────────────────────
+# â”€â”€ phone auth (OTP) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _generate_otp() -> str:
     return f"{random.randint(0, 999999):06d}"
@@ -493,14 +529,14 @@ async def phone_verify(body: PhoneVerifyRequest):
         await user.insert()
 
     token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
+    return TokenResponse(access_token=token, user=UserResponse.from_user(user))
 
 
-# ── profile ───────────────────────────────────────────────────────
+# â”€â”€ profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
-    return UserResponse.model_validate(current_user)
+    return UserResponse.from_user(current_user)
 
 
 @router.put("/me", response_model=UserResponse)
@@ -514,4 +550,46 @@ async def update_me(
             setattr(current_user, key, value)
     current_user.updated_at = utcnow()
     await current_user.save()
-    return UserResponse.model_validate(current_user)
+    return UserResponse.from_user(current_user)
+
+
+@router.post("/set-password", status_code=status.HTTP_204_NO_CONTENT)
+async def set_password(
+    body: SetPasswordRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Attach or rotate the email/password login credential on the current account.
+
+    Use cases:
+    - A user who originally signed in with Google (or another social provider) wants to
+      *also* be able to sign in with email + password. They call this while authenticated
+      via their social session, and after this call, `/auth/login` starts working for them.
+    - An existing email/password user wants to change their password â€” they must supply
+      `current_password` for that.
+
+    The user must have an email on their account for password login to be usable afterwards.
+    """
+    if not current_user.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Set an email on your account first â€” password login requires an email.",
+        )
+
+    # Rotation path: existing password must be verified.
+    if current_user.hashed_password:
+        if not body.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Provide your current password to change it.",
+            )
+        if not verify_password(body.current_password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current password is incorrect.",
+            )
+
+    current_user.hashed_password = hash_password(body.new_password)
+    current_user.updated_at = utcnow()
+    await current_user.save()
+    return None
+

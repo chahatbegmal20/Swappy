@@ -17,6 +17,16 @@ class UserLogin(BaseModel):
     password: str
 
 
+class SetPasswordRequest(BaseModel):
+    """Attach or rotate the Swappy password on an already-authenticated account.
+
+    - `current_password` is required only when the account already has one (rotation).
+    - Social/phone-only accounts (no password on file yet) can set one without it.
+    """
+    new_password: str = Field(min_length=8)
+    current_password: Optional[str] = None
+
+
 class SocialLoginRequest(BaseModel):
     provider: str = Field(description="google | instagram | twitter")
     token: str = Field(description="OAuth ID token or access token from the provider")
@@ -43,7 +53,15 @@ class UserResponse(BaseModel):
     language: str
     avatar_url: Optional[str] = None
     created_at: datetime
+    # True if the account has a Swappy email/password credential set. Social-only
+    # users start out as False and can toggle it via /auth/set-password.
+    has_password: bool = False
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_user(cls, user) -> "UserResponse":
+        data = {k: getattr(user, k, None) for k in cls.model_fields if k != "has_password"}
+        return cls(**data, has_password=bool(getattr(user, "hashed_password", None)))
 
 
 class SocialAccountResponse(BaseModel):
