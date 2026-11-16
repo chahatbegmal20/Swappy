@@ -47,7 +47,7 @@ class TrendProcessor:
         """Normalize field values."""
         signal["source"] = signal["source"].lower().strip()
         signal["topic"] = signal["topic"].strip()
-        signal["category"] = (signal.get("category") or "uncategorized").strip()
+        signal["category"] = (signal.get("category") or "uncategorized").strip().lower()
         signal["region"] = (signal.get("region") or "global").upper().strip()
         
         if isinstance(signal.get("captured_at"), str):

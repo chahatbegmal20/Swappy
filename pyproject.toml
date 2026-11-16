@@ -30,6 +30,7 @@ dependencies = [
   "librosa",
   "Pillow",
   "httpx",
+  "requests",
   "python-dotenv",
 ]
 

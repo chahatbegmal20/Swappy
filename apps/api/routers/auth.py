@@ -8,7 +8,7 @@ import urllib.parse
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 
 from apps.api.core.config import settings
@@ -43,44 +43,98 @@ OTP_TTL_SECONDS = 300
 OTP_MAX_ATTEMPTS = 5
 OAUTH_STATE_TTL = 600
 
-CALLBACK_BASE = settings.FRONTEND_URL.rstrip("/")
 
 # â”€â”€ OAuth provider config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-OAUTH_PROVIDERS: dict[str, dict] = {
-    "google": {
-        "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
-        "token_url": "https://oauth2.googleapis.com/token",
-        "userinfo_url": "https://www.googleapis.com/oauth2/v3/userinfo",
-        "scopes": "openid email profile",
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "client_secret": settings.GOOGLE_CLIENT_SECRET,
-    },
-    "instagram": {
-        "authorize_url": "https://www.instagram.com/oauth/authorize",
-        "token_url": "https://api.instagram.com/oauth/access_token",
-        "userinfo_url": "https://graph.instagram.com/me",
-        "scopes": "instagram_business_basic",
-        "client_id": settings.INSTAGRAM_CLIENT_ID,
-        "client_secret": settings.INSTAGRAM_CLIENT_SECRET,
-    },
-    "twitter": {
-        "authorize_url": "https://twitter.com/i/oauth2/authorize",
-        "token_url": "https://api.x.com/2/oauth2/token",
-        "userinfo_url": "https://api.x.com/2/users/me",
-        "scopes": "tweet.read users.read offline.access",
-        "client_id": settings.TWITTER_CLIENT_ID,
-        "client_secret": settings.TWITTER_CLIENT_SECRET,
-        "pkce": True,
-    },
+_PLACEHOLDER_OAUTH_VALUES = {
+    "",
+    "your-id-from-developers.facebook.com",
+    "your-id-from-developer.x.com",
+    "your-secret",
 }
+
+
+def _is_oauth_credential_configured(value: Optional[str]) -> bool:
+    if not value:
+        return False
+    normalized = value.strip().lower()
+    return normalized not in _PLACEHOLDER_OAUTH_VALUES and not normalized.startswith("your-")
+
+
+def _get_oauth_providers() -> dict[str, dict]:
+    return {
+        "google": {
+            "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
+            "token_url": "https://oauth2.googleapis.com/token",
+            "userinfo_url": "https://www.googleapis.com/oauth2/v3/userinfo",
+            "scopes": "openid email profile",
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+        },
+        "instagram": {
+            "authorize_url": "https://www.instagram.com/oauth/authorize",
+            "token_url": "https://api.instagram.com/oauth/access_token",
+            "userinfo_url": "https://graph.instagram.com/me",
+            "scopes": "instagram_business_basic",
+            "client_id": settings.INSTAGRAM_CLIENT_ID,
+            "client_secret": settings.INSTAGRAM_CLIENT_SECRET,
+        },
+        "twitter": {
+            "authorize_url": "https://twitter.com/i/oauth2/authorize",
+            "token_url": "https://api.x.com/2/oauth2/token",
+            "userinfo_url": "https://api.x.com/2/users/me",
+            "scopes": "tweet.read users.read offline.access",
+            "client_id": settings.TWITTER_CLIENT_ID,
+            "client_secret": settings.TWITTER_CLIENT_SECRET,
+            "pkce": True,
+        },
+    }
 
 
 # â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-def _get_redirect_uri(provider: str) -> str:
+def _get_request_base(request: Optional[Request], *, default_base: str, prefer_origin: bool = False) -> str:
+    if request is not None:
+        if prefer_origin:
+            for header_name in ("origin", "referer"):
+                header_value = request.headers.get(header_name)
+                if header_value:
+                    parsed = urllib.parse.urlparse(header_value)
+                    if parsed.scheme and parsed.netloc:
+                        return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+
+        forwarded_proto = request.headers.get("x-forwarded-proto")
+        forwarded_host = request.headers.get("x-forwarded-host")
+        host = forwarded_host or request.headers.get("host")
+        if host:
+            proto = (forwarded_proto or "http").split(",")[0].strip()
+            if host.startswith("http://") or host.startswith("https://"):
+                return host.rstrip("/")
+            return f"{proto}://{host}".rstrip("/")
+
+    return (default_base or "http://localhost:8000").rstrip("/")
+
+
+def _get_frontend_base(request: Optional[Request] = None, redirect_base: Optional[str] = None) -> str:
+    """Return the Next.js origin for post-OAuth browser redirects.
+
+    Always use FRONTEND_URL (never the API request Host). An empty/relative base
+    would make Location: /auth/callback resolve against :8000 and 404.
+    """
+    del request  # kept for call-site compatibility
+    base = (redirect_base or settings.FRONTEND_URL or "").strip().rstrip("/")
+    if not base.startswith("http://") and not base.startswith("https://"):
+        base = "http://localhost:3000"
+    return base
+
+
+def _get_backend_base(request: Optional[Request] = None) -> str:
+    return _get_request_base(request, default_base=settings.BACKEND_URL)
+
+
+def _get_redirect_uri(provider: str, request: Optional[Request] = None) -> str:
     """Redirect URI must point to the backend callback so it can exchange the code."""
-    return f"{settings.BACKEND_URL.rstrip('/')}/api/v1/auth/social/{provider}/callback"
+    return f"{_get_backend_base(request).rstrip('/')}/api/v1/auth/social/{provider}/callback"
 
 
 def _make_code_challenge(verifier: str) -> str:
@@ -141,10 +195,15 @@ async def _find_or_create_social_user(
     return user
 
 
-async def _exchange_code_for_profile(provider: str, code: str, state_data: dict) -> dict:
+async def _exchange_code_for_profile(
+    provider: str,
+    code: str,
+    state_data: dict,
+    request: Optional[Request] = None,
+) -> dict:
     """Exchange authorization code for tokens, then fetch user profile."""
-    cfg = OAUTH_PROVIDERS[provider]
-    redirect_uri = _get_redirect_uri(provider)
+    cfg = _get_oauth_providers()[provider]
+    redirect_uri = state_data.get("redirect_uri") or _get_redirect_uri(provider, request=request)
 
     token_data: dict = {
         "grant_type": "authorization_code",
@@ -321,27 +380,39 @@ async def login(body: UserLogin):
 # â”€â”€ OAuth2 authorization code flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/social/{provider}/authorize")
-async def social_authorize(provider: str):
+async def social_authorize(provider: str, request: Request):
     """
     Step 1: Redirect the user's browser to the OAuth provider's consent screen.
     The frontend opens this URL in a popup window.
     """
-    cfg = OAUTH_PROVIDERS.get(provider)
+    cfg = _get_oauth_providers().get(provider)
     if not cfg:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
-    if not cfg["client_id"]:
+    if not (
+        _is_oauth_credential_configured(cfg.get("client_id"))
+        and _is_oauth_credential_configured(cfg.get("client_secret"))
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"{provider} OAuth is not configured. Set {provider.upper()}_CLIENT_ID and {provider.upper()}_CLIENT_SECRET in your .env file.",
+            detail=(
+                f"{provider} OAuth is not configured. "
+                f"Set {provider.upper()}_CLIENT_ID and {provider.upper()}_CLIENT_SECRET in your .env file."
+            ),
         )
 
     state = secrets.token_urlsafe(32)
-    state_data: dict = {"provider": provider, "created_at": time.time()}
+    redirect_uri = _get_redirect_uri(provider, request=request)
+    state_data: dict = {
+        "provider": provider,
+        "created_at": time.time(),
+        "redirect_uri": redirect_uri,
+        "frontend_base": _get_frontend_base(),
+    }
 
     params: dict = {
         "client_id": cfg["client_id"],
-        "redirect_uri": _get_redirect_uri(provider),
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": cfg["scopes"],
         "state": state,
@@ -369,6 +440,7 @@ async def social_callback(
     provider: str,
     code: str = Query(...),
     state: str = Query(...),
+    request: Request = None,
 ):
     """
     Step 2: Provider redirects here after user consents.
@@ -382,7 +454,7 @@ async def social_callback(
     if time.time() - state_data["created_at"] > OAUTH_STATE_TTL:
         raise HTTPException(status_code=400, detail="OAuth state expired")
 
-    profile = await _exchange_code_for_profile(provider, code, state_data)
+    profile = await _exchange_code_for_profile(provider, code, state_data, request=request)
 
     user = await _find_or_create_social_user(
         provider=provider,
@@ -397,11 +469,15 @@ async def social_callback(
 
     jwt_token = create_access_token({"sub": str(user.id)})
 
+    callback_base = state_data.get("frontend_base") or _get_frontend_base()
+    if not str(callback_base).startswith("http"):
+        callback_base = _get_frontend_base()
     redirect_url = (
-        f"{CALLBACK_BASE}/auth/callback"
+        f"{str(callback_base).rstrip('/')}/auth/callback"
         f"?token={urllib.parse.quote(jwt_token)}"
         f"&provider={urllib.parse.quote(provider)}"
     )
+    logger.info("OAuth %s success — redirecting browser to %s", provider, redirect_url.split("?")[0])
     return RedirectResponse(url=redirect_url, status_code=302)
 
 
@@ -460,9 +536,10 @@ _DIRECT_VERIFIERS = {
 async def list_providers():
     """Return which OAuth providers are configured and available."""
     available = {}
-    for name, cfg in OAUTH_PROVIDERS.items():
+    for name, cfg in _get_oauth_providers().items():
         available[name] = {
-            "configured": bool(cfg["client_id"] and cfg["client_secret"]),
+            "configured": _is_oauth_credential_configured(cfg.get("client_id"))
+            and _is_oauth_credential_configured(cfg.get("client_secret")),
             "authorize_url": f"/api/v1/auth/social/{name}/authorize",
         }
     return available

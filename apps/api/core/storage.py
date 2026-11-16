@@ -39,7 +39,12 @@ def generate_presigned_upload_url(key: str, content_type: str, expires: int = 36
             Params={"Bucket": settings.S3_BUCKET, "Key": key, "ContentType": content_type},
             ExpiresIn=expires,
         )
-    return f"http://localhost:8000/mock-upload/{key}"
+    # Prefer 127.0.0.1 over "localhost" — on Windows, localhost can resolve to ::1 while
+    # uvicorn is bound to IPv4 only, which makes browser/PowerShell uploads hang.
+    base = (settings.BACKEND_URL or "http://127.0.0.1:8000").rstrip("/")
+    if "localhost" in base:
+        base = base.replace("localhost", "127.0.0.1")
+    return f"{base}/mock-upload/{key}"
 
 
 def generate_presigned_download_url(key: str, expires: int = 3600) -> str:
@@ -49,7 +54,10 @@ def generate_presigned_download_url(key: str, expires: int = 3600) -> str:
             Params={"Bucket": settings.S3_BUCKET, "Key": key},
             ExpiresIn=expires,
         )
-    return f"http://localhost:8000/mock-download/{key}"
+    base = (settings.BACKEND_URL or "http://127.0.0.1:8000").rstrip("/")
+    if "localhost" in base:
+        base = base.replace("localhost", "127.0.0.1")
+    return f"{base}/mock-download/{key}"
 
 
 def delete_object(key: str) -> None:

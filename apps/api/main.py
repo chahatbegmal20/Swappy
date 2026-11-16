@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -23,9 +24,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+cors_origins = {settings.FRONTEND_URL, "http://localhost:3000", "http://localhost:3001"}
+for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(","):
+    candidate = origin.strip()
+    if candidate:
+        cors_origins.add(candidate)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000", "http://localhost:3001"],
+    allow_origins=sorted(cors_origins),
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,6 +56,18 @@ async def health_check():
 @app.get("/")
 async def root():
     return {"message": "Swappy API", "version": "1.0.0"}
+
+
+@app.get("/auth/callback")
+async def oauth_frontend_callback_fallback(request: Request):
+    """If a client lands on the API /auth/callback, bounce them to the Next.js app."""
+    from fastapi.responses import RedirectResponse
+
+    query = request.url.query
+    target = f"{settings.FRONTEND_URL.rstrip('/')}/auth/callback"
+    if query:
+        target = f"{target}?{query}"
+    return RedirectResponse(url=target, status_code=302)
 
 
 @app.put("/mock-upload/{path:path}")

@@ -1,15 +1,26 @@
 """Adapters for ingesting trend signals from external sources.
 
-Uses free, no-auth APIs: Google Trends (pytrends), Hacker News, Reddit public JSON,
-Wikipedia pageviews. Falls back to synthetic data when APIs are unavailable.
+Uses free, no-auth APIs:
+- Google Trends daily RSS (no API key)
+- Hacker News Algolia API
+- Reddit public JSON
+
+Falls back to synthetic data when live sources are unavailable.
 """
-import random
 import logging
-import requests
+import random
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import quote_plus
+
+import requests
 
 logger = logging.getLogger(__name__)
+
+# Google Trends RSS namespaces
+_ATOM = {"atom": "http://www.w3.org/2005/Atom"}
+_HT = {"ht": "https://trends.google.com/trending/rss"}
 
 CATEGORIES = ["Music", "Gaming", "Tech", "Fashion", "Beauty", "Food", "Travel", "Education", "Fitness", "Comedy"]
 REGIONS = ["US", "UK", "IN", "BR", "DE", "JP", "KR", "FR", "AU", "NG", "MX", "ID"]
@@ -103,66 +114,151 @@ class SyntheticTrendSource:
         return random.uniform(low, high)
 
 
+def _guess_category(topic: str) -> str:
+    text = topic.lower()
+    rules = [
+        ("tech", ("ai", "openai", "google", "apple", "microsoft", "iphone", "android", "software", "crypto", "bitcoin", "chatgpt")),
+        ("gaming", ("game", "xbox", "playstation", "steam", "nintendo", "esport", "minecraft", "fortnite")),
+        ("music", ("song", "album", "spotify", "concert", "rapper", "singer", "billboard", "grammy")),
+        ("sports", ("nba", "nfl", "soccer", "football", "cricket", "olympics", "ufc", "tennis", "match")),
+        ("entertainment", ("movie", "netflix", "disney", "trailer", "celebrity", "actor", "tv show", "oscar")),
+        ("politics", ("election", "president", "senate", "minister", "parliament", "vote", "congress")),
+        ("finance", ("stock", "market", "fed", "inflation", "nasdaq", "dow", "earnings")),
+    ]
+    for category, keywords in rules:
+        if any(k in text for k in keywords):
+            return category
+    return "general"
+
+
 class GoogleTrendsSource:
-    """Real Google Trends data via pytrends (free, no API key)."""
+    """Live Google Trends via the public daily trending RSS feed (no API key)."""
+
+    RSS_URL = "https://trends.google.com/trending/rss?geo={geo}"
 
     def fetch_trending(self, region: str = "US") -> list[dict[str, Any]]:
+        geo = (region or "US").upper()
+        url = self.RSS_URL.format(geo=quote_plus(geo))
         try:
-            from pytrends.request import TrendReq
-            pytrends = TrendReq(hl="en-US", tz=360, timeout=(5, 10))
-            trending = pytrends.trending_searches(pn=region.lower() if len(region) == 2 else "united_states")
-            now = datetime.now(timezone.utc)
+            resp = requests.get(
+                url,
+                timeout=12,
+                headers={
+                    "User-Agent": "SwappyBot/1.0 (+https://localhost; trend-ingestion)",
+                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+                },
+            )
+            if resp.status_code != 200 or not resp.text.strip():
+                logger.warning("Google Trends RSS HTTP %s for geo=%s", resp.status_code, geo)
+                return []
 
-            signals = []
-            for _, row in trending.head(20).iterrows():
-                topic = str(row[0])
+            root = ET.fromstring(resp.content)
+            channel = root.find("channel")
+            if channel is None:
+                return []
+
+            now = datetime.now(timezone.utc)
+            signals: list[dict[str, Any]] = []
+            for rank, item in enumerate(channel.findall("item"), start=1):
+                title_el = item.find("title")
+                topic = (title_el.text or "").strip() if title_el is not None else ""
+                if not topic:
+                    continue
+
+                traffic_el = item.find("ht:approx_traffic", _HT)
+                traffic_raw = (traffic_el.text or "").strip() if traffic_el is not None else ""
+                volume = self._parse_traffic(traffic_raw)
+                # Higher rank + higher traffic => hotter
+                velocity = max(35.0, 100.0 - (rank - 1) * 2.5)
+                if volume >= 200_000:
+                    signal_type = "hot"
+                elif volume >= 50_000:
+                    signal_type = "emerging"
+                else:
+                    signal_type = "stable"
+
+                news_items = []
+                for news in item.findall("ht:news_item", _HT)[:3]:
+                    news_title = news.findtext("ht:news_item_title", default="", namespaces=_HT)
+                    news_url = news.findtext("ht:news_item_url", default="", namespaces=_HT)
+                    if news_title:
+                        news_items.append({"title": news_title, "url": news_url})
+
                 signals.append({
                     "source": "google_trends",
-                    "category": "General",
+                    "category": _guess_category(topic),
                     "topic": topic,
-                    "region": region,
-                    "signal_type": "hot",
-                    "velocity": round(random.uniform(60, 100), 2),
-                    "volume": round(random.uniform(50000, 500000), 2),
-                    "raw_data": {"source_api": "pytrends_trending_searches"},
+                    "region": geo,
+                    "signal_type": signal_type,
+                    "velocity": round(velocity, 2),
+                    "volume": float(volume),
+                    "raw_data": {
+                        "source_api": "google_trends_rss",
+                        "approx_traffic": traffic_raw or str(volume),
+                        "rank": rank,
+                        "news": news_items,
+                        "rss_url": url,
+                    },
                     "captured_at": now.isoformat(),
                 })
+            logger.info("Google Trends RSS: %s topics for geo=%s", len(signals), geo)
             return signals
         except Exception as e:
-            logger.info(f"Google Trends fetch failed: {e}")
-            return SyntheticTrendSource().generate_batch(10)
+            logger.warning("Google Trends RSS fetch failed: %s", e)
+            return []
+
+    @staticmethod
+    def _parse_traffic(raw: str) -> int:
+        """Parse values like '200+', '50,000+', '1M+' into an integer estimate."""
+        if not raw:
+            return 10_000
+        cleaned = raw.replace(",", "").replace("+", "").strip().upper()
+        try:
+            if cleaned.endswith("M"):
+                return int(float(cleaned[:-1]) * 1_000_000)
+            if cleaned.endswith("K"):
+                return int(float(cleaned[:-1]) * 1_000)
+            return int(float(cleaned))
+        except ValueError:
+            return 10_000
 
     def fetch_interest(self, keywords: list[str], timeframe: str = "today 3-m", region: str = "US") -> list[dict]:
-        try:
-            from pytrends.request import TrendReq
-            pytrends = TrendReq(hl="en-US", tz=360, timeout=(5, 10))
-            pytrends.build_payload(keywords[:5], timeframe=timeframe, geo=region)
-            df = pytrends.interest_over_time()
-            if df is not None and not df.empty:
-                now = datetime.now(timezone.utc)
-                signals = []
-                for kw in keywords[:5]:
-                    if kw in df.columns:
-                        vals = df[kw].values
-                        current = float(vals[-1])
-                        mean_val = float(vals.mean())
-                        velocity = (current - mean_val) / max(mean_val, 1) * 100
-                        sig_type = "hot" if velocity > 30 else "emerging" if velocity > 10 else "stable" if velocity > -10 else "declining"
-                        signals.append({
-                            "source": "google_trends",
-                            "category": "Search",
-                            "topic": kw,
-                            "region": region,
-                            "signal_type": sig_type,
-                            "velocity": round(velocity, 2),
-                            "volume": round(current * 1000, 2),
-                            "raw_data": {"current_interest": current, "mean_interest": mean_val},
-                            "captured_at": now.isoformat(),
-                        })
-                return signals
-        except Exception as e:
-            logger.info(f"Google interest fetch failed: {e}")
-        return SyntheticTrendSource().generate_batch(len(keywords))
+        """Best-effort interest signals — prefer live RSS topics that match keywords."""
+        live = self.fetch_trending(region=region)
+        if not live:
+            return SyntheticTrendSource().generate_batch(len(keywords))
+        wanted = {k.lower() for k in keywords}
+        matched = [s for s in live if any(w in s["topic"].lower() for w in wanted)]
+        return matched or live[: max(1, len(keywords))]
+
+
+def fetch_all_live_trends(
+    *,
+    regions: list[str] | None = None,
+    include_reddit: bool = True,
+    include_hn: bool = True,
+) -> list[dict[str, Any]]:
+    """Aggregate live trends from Google RSS + Reddit + Hacker News."""
+    regions = regions or ["US", "GB", "IN", "AU"]
+    combined: list[dict[str, Any]] = []
+
+    google = GoogleTrendsSource()
+    for geo in regions:
+        combined.extend(google.fetch_trending(region=geo))
+
+    if include_hn:
+        combined.extend(HackerNewsSource().fetch_trending(count=15))
+
+    if include_reddit:
+        reddit = RedditSource()
+        for sub in ("popular", "technology", "news"):
+            combined.extend(reddit.fetch_trending(subreddit=sub, count=10))
+
+    if not combined:
+        logger.warning("All live trend sources failed — using synthetic fallback")
+        return SyntheticTrendSource().generate_batch(40)
+
+    return combined
 
 
 class HackerNewsSource:
@@ -187,9 +283,9 @@ class HackerNewsSource:
                     sig_type = "stable"
                 signals.append({
                     "source": "hackernews",
-                    "category": "Tech",
+                    "category": "tech",
                     "topic": title,
-                    "region": "Global",
+                    "region": "GLOBAL",
                     "signal_type": sig_type,
                     "velocity": round(min(points / 5, 100), 2),
                     "volume": round(points * 100, 2),
@@ -226,11 +322,12 @@ class RedditSource:
                     sig_type = "emerging"
                 else:
                     sig_type = "stable"
+                sub_name = (d.get("link_flair_text") or d.get("subreddit") or subreddit or "general")
                 signals.append({
                     "source": "reddit",
-                    "category": d.get("subreddit", subreddit).title(),
+                    "category": _guess_category(d.get("title", "") or sub_name),
                     "topic": d.get("title", "")[:200],
-                    "region": "Global",
+                    "region": "GLOBAL",
                     "signal_type": sig_type,
                     "velocity": round(min(score / 100, 100), 2),
                     "volume": round(score * 10, 2),

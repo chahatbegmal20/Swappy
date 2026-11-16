@@ -193,7 +193,35 @@ class TrendResponse(BaseModel):
     velocity: float
     volume: float
     captured_at: datetime
+    raw_data: Optional[dict] = None
+    trend_score: Optional[float] = None
     model_config = {"from_attributes": True}
+
+
+class TrendEngagement(BaseModel):
+    views: int
+    likes: int
+    comments: int
+    saves: int
+    shares: int
+    metrics_note: str
+
+
+class TrendDetailResponse(BaseModel):
+    id: str
+    source: str
+    category: Optional[str]
+    topic: str
+    region: Optional[str]
+    signal_type: str
+    velocity: float
+    volume: float
+    trend_score: float
+    captured_at: datetime
+    raw_data: Optional[dict] = None
+    engagement: TrendEngagement
+    related_news: list[dict] = []
+    data_points: list[dict] = []
 
 
 class TrendSearchParams(BaseModel):

@@ -23,12 +23,14 @@ const args = [
   "8000",
   "--reload-delay",
   "1",
-  "--reload-exclude",
-  "*.db",
-  "--reload-exclude",
-  "**/*.db",
-  "--reload-exclude",
-  "*.sqlite*",
+  // Only watch backend code — avoids Windows glob expansion bugs and
+  // prevents frontend/scripts/upload writes from restarting the API mid-request.
+  "--reload-dir",
+  "apps/api",
+  "--reload-dir",
+  "services",
+  "--reload-dir",
+  "packages",
 ];
 
 const child = spawn(py, args, {

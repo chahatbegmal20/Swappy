@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -50,7 +51,10 @@ async def analyze_project(
         })
 
     pipeline = _get_pipeline()
-    score_data = pipeline.analyze(
+    # Run CPU-heavy model inference off the event loop so auth/health stay responsive
+    # while sentence-transformers / XGBoost load on first request.
+    score_data = await asyncio.to_thread(
+        pipeline.analyze,
         title=project.name,
         description=project.description,
         hashtags=project.hashtags,
