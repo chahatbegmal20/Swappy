@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,22 +23,39 @@ app = FastAPI(
     description="Creator Market Intelligence Platform",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/docs" if not settings.is_production else None,
+    redoc_url="/redoc" if not settings.is_production else None,
 )
 
-cors_origins = {settings.FRONTEND_URL, "http://localhost:3000", "http://localhost:3001"}
-for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(","):
-    candidate = origin.strip()
+cors_origins = {settings.FRONTEND_URL.rstrip("/")}
+if settings.is_development:
+    cors_origins.update(
+        {
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",
+        }
+    )
+for origin in settings.CORS_ALLOW_ORIGINS.split(","):
+    candidate = origin.strip().rstrip("/")
     if candidate:
         cors_origins.add(candidate)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=sorted(cors_origins),
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+cors_kwargs: dict[str, Any] = {
+    "allow_origins": sorted(cors_origins),
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+# Private-network regex only for local development
+if settings.is_development:
+    cors_kwargs["allow_origin_regex"] = (
+        r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+"
+        r"|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?"
+    )
+
+app.add_middleware(CORSMiddleware, **cors_kwargs)
 
 API_PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=API_PREFIX)
@@ -50,12 +68,19 @@ app.include_router(dashboard.router, prefix=API_PREFIX)
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "env": settings.APP_ENV,
+    }
 
 
 @app.get("/")
 async def root():
-    return {"message": "Swappy API", "version": "1.0.0"}
+    return {
+        "message": "Swappy API",
+        "version": "1.0.0",
+        "env": settings.APP_ENV,
+    }
 
 
 @app.get("/auth/callback")

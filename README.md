@@ -6,7 +6,7 @@ AI-powered market intelligence that helps content creators predict trends, analy
 
 - **Content Analysis** — Upload video, audio, thumbnails, and text. The ML pipeline extracts features and returns a full scoring report within seconds.
 - **7 Predictive Scores** — Trend Alignment, Virality Probability, Audience Fit, Novelty, Competitiveness, Launch Timing, and Trend Creation potential.
-- **Trend Intelligence** — Real-time trend monitoring with heatmaps, trajectory tracking, and filtering by category, region, and signal type.
+- **Trend Intelligence** — Live trend monitoring with engagement estimates, predicted trend score, velocity, and trajectory.
 - **Explainable AI** — Every score comes with plain-language explanations, factor breakdowns, comparable examples, and concrete recommendations.
 - **Creator Dashboard** — Track project performance over time, compare draft iterations side-by-side, and explore market opportunities.
 - **Optimal Publish Timing** — Get recommended publish windows and best-fit platforms for each piece of content.
@@ -23,8 +23,8 @@ AI-powered market intelligence that helps content creators predict trends, analy
               ┌─────────────┼─────────────┐
               │             │             │
         ┌─────▼─────┐ ┌────▼────┐ ┌──────▼──────┐
-        │ PostgreSQL │ │  Redis  │ │ MinIO (S3)  │
-        │   :5432    │ │  :6379  │ │ :9000/:9001 │
+        │ MongoDB   │ │  Redis  │ │ MinIO / R2  │
+        │  Atlas    │ │  :6379  │ │   (S3 API)  │
         └───────────┘ └────┬────┘ └─────────────┘
                            │
                      ┌─────▼─────┐
@@ -33,39 +33,93 @@ AI-powered market intelligence that helps content creators predict trends, analy
                      └───────────┘
 ```
 
-The **frontend** (Next.js) communicates with the **API** (FastAPI) over REST. The API handles auth, project CRUD, file uploads (to MinIO/S3), and synchronous scoring. For heavy workloads — batch analysis, trend ingestion, media processing — the API dispatches tasks to **Celery workers** backed by **Redis**. All persistent state lives in **PostgreSQL**, with **Alembic** managing schema migrations.
+The **frontend** (Next.js in `apps/web`) talks to the **API** (FastAPI in `apps/api`) over REST. The API handles auth, project CRUD, file uploads (S3-compatible storage), trends, and scoring. Heavy jobs can go to **Celery** via **Redis**. Persistent state lives in **MongoDB Atlas** (Beanie ODM).
 
 ## Tech Stack
 
 ### Frontend
-- **Next.js 16** with App Router, TypeScript, Tailwind CSS
-- **Zustand** for client state, **TanStack Query** for server state
-- **Recharts** for data visualization, **Lucide React** for icons
+- **Next.js 16** (App Router), TypeScript, Tailwind CSS
+- **Zustand** + **TanStack Query**, **Recharts**, **Lucide**
 
 ### Backend
-- **FastAPI** with async SQLAlchemy and Pydantic v2
-- **Celery + Redis** for distributed task processing
-- **boto3** for S3-compatible object storage (MinIO in dev)
+- **FastAPI** + **Pydantic v2** + **Beanie / Motor** (MongoDB)
+- **Celery + Redis** for background work (optional early on)
+- **boto3** for S3-compatible object storage (MinIO local, R2/S3 in cloud)
 
 ### ML / AI
-- **scikit-learn**, **XGBoost** — scoring models
-- **NumPy**, **pandas** — feature engineering
-- **sentence-transformers**, **CLIP** — embedding extraction (production)
-- **SHAP** — model explainability
-- **librosa**, **Pillow** — audio and image feature extraction
+- **scikit-learn**, **XGBoost**, **NumPy**, **pandas**
+- **sentence-transformers**, **SHAP**, **librosa**, **Pillow**
 
-### Infrastructure
-- **PostgreSQL 16** — relational data store
-- **Redis 7** — task broker, caching, result backend
-- **MinIO** — S3-compatible object storage for uploads
-- **Docker + Docker Compose** — containerized development and deployment
-- **Alembic** — database migrations
+### Infrastructure (early stage)
+- **Local:** `npm run start` + Atlas + mock/MinIO uploads
+- **Staging/Prod:** Vercel (web) + Railway (API) + Atlas + Cloudflare R2
+- See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+## Environments & branching
+
+| Concern | Approach |
+|---------|----------|
+| Git | Feature branch → PR → `main` (no long-lived env branches) |
+| Runtime | Separate **staging** and **production** deploys + secrets |
+| Config | `.env` / host env vars — see `.env.example`, `.env.staging.example`, `.env.production.example` |
+
+Promote: merge to `main` → verify staging → promote the same commit to production.
 
 ## Quick Start
 
 ### Prerequisites
 
-- Docker & Docker Compose
 - Node.js 20+
 - Python 3.11+
+- MongoDB Atlas connection string (or local Mongo)
+- Optional: Docker Desktop for Redis/MinIO (`docker compose up -d`)
 
+### Setup
+
+```bash
+# 1) Python env
+python -m venv .venv
+# Windows
+.\.venv\Scripts\Activate.ps1
+pip install -e .
+
+# 2) Env file
+copy .env.example .env   # then fill DATABASE_URL, JWT_SECRET, OAuth, etc.
+
+# 3) Web deps
+cd apps/web
+npm ci
+cd ../..
+
+# 4) Run API + web
+npm install
+npm run start
+```
+
+- Web: http://localhost:3000  
+- API: http://127.0.0.1:8000/health  
+- Docs: http://127.0.0.1:8000/docs (disabled when `APP_ENV=production`)
+
+### Manual / console setup
+
+OAuth consoles, SMS, Atlas network access: [docs/MANUAL_SETUP_GUIDE.md](docs/MANUAL_SETUP_GUIDE.md)
+
+### Deploy
+
+Step-by-step Vercel + Railway + Atlas + R2: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+## Repo layout
+
+```
+apps/api          FastAPI application
+apps/web          Next.js frontend (part of this monorepo)
+apps/worker       Celery tasks
+services/         Trend ingestion and shared services
+infra/docker/     API / web / worker Dockerfiles
+docs/             Manual setup + deployment guides
+.github/workflows CI (API tests + web build)
+```
+
+## License
+
+Proprietary — all rights reserved.

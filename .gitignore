@@ -20,6 +20,10 @@ apps/web/node_modules/
 .env
 .env.local
 .env.production
+.env.staging
+!.env.example
+!.env.staging.example
+!.env.production.example
 
 # Database
 *.db

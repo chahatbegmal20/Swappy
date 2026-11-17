@@ -541,8 +541,18 @@ async def list_providers():
             "configured": _is_oauth_credential_configured(cfg.get("client_id"))
             and _is_oauth_credential_configured(cfg.get("client_secret")),
             "authorize_url": f"/api/v1/auth/social/{name}/authorize",
+            # Exact URI to paste into the provider console for this environment
+            "redirect_uri": (
+                f"{settings.BACKEND_URL.rstrip('/')}"
+                f"/api/v1/auth/social/{name}/callback"
+            ),
         }
-    return available
+    return {
+        "env": settings.APP_ENV,
+        "frontend_url": settings.FRONTEND_URL,
+        "backend_url": settings.BACKEND_URL,
+        "providers": available,
+    }
 
 
 @router.get("/social/accounts", response_model=list[SocialAccountResponse])
@@ -567,12 +577,20 @@ async def phone_send_otp(body: PhoneLoginRequest):
         "expires_at": time.time() + OTP_TTL_SECONDS,
         "attempts": 0,
     }
-    logger.info("OTP for %s: %s", body.phone, code)
-    return {
+    # Real SMS providers should be wired here for staging/production.
+    if settings.is_development:
+        logger.info("OTP for %s: %s", body.phone, code)
+    else:
+        logger.info("OTP generated for %s (value not logged outside development)", body.phone)
+
+    payload = {
         "message": "OTP sent successfully",
-        "dev_otp": code,
         "expires_in_seconds": OTP_TTL_SECONDS,
     }
+    # Never expose OTPs outside local development
+    if settings.is_development:
+        payload["dev_otp"] = code
+    return payload
 
 
 @router.post("/phone/verify", response_model=TokenResponse)
