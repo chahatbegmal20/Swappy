@@ -165,7 +165,7 @@ export function SocialAuth() {
 
     try {
       const result = await api.phoneSendOtp(phone);
-      setDevOtp(result.dev_otp);
+      setDevOtp(result.dev_otp ?? null);
       setMode("phone-otp");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send OTP");
