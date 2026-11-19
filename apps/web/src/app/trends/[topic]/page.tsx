@@ -72,15 +72,20 @@ export default function TrendDetailPage() {
       ? latestPoint.velocity - previousPoint.velocity
       : 0;
 
-  const chartData = dataPoints.map((point) => ({
-    date: new Date(point.date || point.captured_at || Date.now()).toLocaleDateString(
-      "en-US",
-      { month: "short", day: "numeric" },
-    ),
-    velocity: Math.round(point.velocity),
-    score: Math.round(point.score ?? 0),
-    volume: Math.round(point.volume ?? 0),
-  }));
+  const chartData = dataPoints.map((point) => {
+    const rawDate = point.date || point.captured_at || detail?.captured_at;
+    return {
+      date: rawDate
+        ? new Date(rawDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          })
+        : "—",
+      velocity: Math.round(point.velocity),
+      score: Math.round(point.score ?? 0),
+      volume: Math.round(point.volume ?? 0),
+    };
+  });
 
   const engagement = detail?.engagement;
   const hasEstimatedHistory = dataPoints.some((p) => p.estimated);

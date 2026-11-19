@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -92,7 +92,6 @@ export default function ProjectScorecardPage() {
 
 function ProjectScorecardContent() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 

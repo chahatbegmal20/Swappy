@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -17,7 +17,6 @@ import {
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,23 +55,13 @@ function SettingsContent() {
     confirm_password: "",
   });
 
+  // AuthGuard only renders when user is present — initialize once from that user.
   const [profile, setProfile] = useState({
-    username: "",
-    email: "",
-    region: "Global",
-    language: "English",
+    username: user?.name || "",
+    email: user?.email || "",
+    region: user?.region || "Global",
+    language: user?.language || "English",
   });
-
-  useEffect(() => {
-    if (user) {
-      setProfile({
-        username: user.name || "",
-        email: user.email || "",
-        region: user.region || "Global",
-        language: user.language || "English",
-      });
-    }
-  }, [user]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {

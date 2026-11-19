@@ -7,7 +7,7 @@ import {
   ChevronRight,
   File,
   Film,
-  Image,
+  Image as ImageIcon,
   Loader2,
   Music,
   Plus,
@@ -78,7 +78,7 @@ function UploadContent() {
   }, [preselectedProject]);
 
   // Step 2 state
-  const { files, addFiles, removeFile, clearFiles, uploading, setUploading } =
+  const { files, addFiles, removeFile, uploading, setUploading } =
     useUploadStore();
 
   // Step 3 state
@@ -754,7 +754,7 @@ function FileTypeIcon({ type }: { type: string }) {
   if (type.startsWith("audio/"))
     return <Music className="h-5 w-5 shrink-0 text-purple-400" />;
   if (type.startsWith("image/"))
-    return <Image className="h-5 w-5 shrink-0 text-emerald-400" />;
+    return <ImageIcon className="h-5 w-5 shrink-0 text-emerald-400" />;
   return <File className="h-5 w-5 shrink-0 text-gray-400" />;
 }
 

@@ -236,23 +236,27 @@ class ApiClient {
   async getSocialProviders(): Promise<
     Record<string, { configured: boolean; authorize_url: string; redirect_uri?: string }>
   > {
+    type ProviderInfo = {
+      configured: boolean;
+      authorize_url: string;
+      redirect_uri?: string;
+    };
+
     const payload = await this.request<
-      | Record<string, { configured: boolean; authorize_url: string; redirect_uri?: string }>
-      | {
-          providers: Record<
-            string,
-            { configured: boolean; authorize_url: string; redirect_uri?: string }
-          >;
-        }
+      Record<string, ProviderInfo> | { providers: Record<string, ProviderInfo> }
     >("/api/v1/auth/social/providers");
 
-    if (payload && typeof payload === "object" && "providers" in payload && payload.providers) {
-      return payload.providers;
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "providers" in payload &&
+      payload.providers &&
+      typeof payload.providers === "object"
+    ) {
+      return payload.providers as Record<string, ProviderInfo>;
     }
-    return payload as Record<
-      string,
-      { configured: boolean; authorize_url: string; redirect_uri?: string }
-    >;
+
+    return payload as Record<string, ProviderInfo>;
   }
 
   async phoneSendOtp(phone: string): Promise<{
