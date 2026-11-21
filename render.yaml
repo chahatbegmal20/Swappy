@@ -9,8 +9,8 @@ services:
     plan: free
     region: oregon
     rootDir: .
-    buildCommand: pip install -r requirements-api.txt
-    startCommand: PYTHONPATH=. uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: python -V && pip install -r requirements-api.txt
+    startCommand: python -V && PYTHONPATH=. uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
     envVars:

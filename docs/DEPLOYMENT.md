@@ -82,7 +82,8 @@ Notes:
 - **Do not** copy `JWT_SECRET=swappy-dev-secret-change-in-production` from local `.env` — staging rejects it. Use Render’s **Generate** button (32+ chars).
 - `BACKEND_URL` auto-fills from Render’s `RENDER_EXTERNAL_URL` if you leave a localhost value; set it explicitly to your `https://….onrender.com` URL when you know it.
 - `FRONTEND_URL` must be your real Vercel HTTPS URL (e.g. `https://swappy.vercel.app`), not localhost.
-- Pin **Python 3.11** (`runtime.txt` / `PYTHON_VERSION=3.11.9`). Python 3.14 works for install but is unnecessary risk.
+- Pin **Python 3.11** in Render env: `PYTHON_VERSION=3.11.9`, then **Manual Deploy → Clear build cache & deploy**. Logs must show `Python 3.11.x` (not 3.14) — 3.14 often breaks Atlas TLS (`TLSV1_ALERT_INTERNAL_ERROR`).
+- Atlas → **Network Access** → allow `0.0.0.0/0` while bootstrapping (or Render’s IPs).
 - `ALLOW_MOCK_STORAGE=true` lets uploads work without R2/S3 for early demos.
 - Free Render services **spin down** after idle time; the first request after sleep can take ~30–60s.
 
