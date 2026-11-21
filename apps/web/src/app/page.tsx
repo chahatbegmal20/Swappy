@@ -13,13 +13,40 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { Metadata } from "next";
-import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/seo";
+import { DEFAULT_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME} — ${SITE_TAGLINE} | Know Before You Publish`,
+  title: `${SITE_NAME} — Creator Market Intelligence & Virality Prediction`,
   description: DEFAULT_DESCRIPTION,
+  keywords: [
+    "Swappy",
+    "creator market intelligence",
+    "creator marketplace intelligence",
+    "content marketplace intelligence",
+    "virality prediction",
+    "YouTube TikTok analytics AI",
+  ],
   alternates: { canonical: "/" },
 };
+
+const faqs = [
+  {
+    q: "What is Swappy?",
+    a: "Swappy is a creator market intelligence platform. Upload a draft and get AI scores for trends, virality, audience fit, and publish timing before you post on YouTube, TikTok, or Instagram.",
+  },
+  {
+    q: "What does creator market intelligence mean?",
+    a: "It means using live trend signals and predictive scoring so creators understand demand and competition — not just after publishing, but before.",
+  },
+  {
+    q: "Who is Swappy for?",
+    a: "YouTubers, TikTok creators, Instagram creators, short-form editors, and anyone who wants data-backed content decisions in the creator economy.",
+  },
+  {
+    q: "Is Swappy free to start?",
+    a: "Yes. You can create an account and explore trend intelligence and content scoring to learn whether Swappy fits your workflow.",
+  },
+];
 
 const features = [
   {
@@ -109,12 +136,12 @@ export default function LandingPage() {
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
               <span className="gradient-text">Swappy</span>
               {" "}
-              — know before you publish
+              creator market intelligence
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-gray-400 sm:text-xl">
-              Creator market intelligence for YouTube, TikTok, and social
-              creators. Predict trends, score virality and audience fit, and
-              maximize impact before your content goes live.
+              The AI platform for content marketplace intelligence — predict
+              YouTube and TikTok trends, score virality and audience fit, and
+              know the best time to publish before you go live.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
@@ -173,11 +200,12 @@ export default function LandingPage() {
       <section className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Everything you need to{" "}
+            Creator marketplace intelligence to{" "}
             <span className="gradient-text">publish smarter</span>
           </h2>
           <p className="mt-4 text-lg text-gray-400">
-            Comprehensive analysis across every dimension of your content.
+            Trend tracking, virality prediction, and content scoring for social
+            creators — all before you hit publish.
           </p>
         </div>
 
@@ -231,6 +259,42 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── FAQ (helps long-tail search) ──────────────── */}
+      <section
+        id="faq"
+        className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8"
+        aria-labelledby="faq-heading"
+      >
+        <div className="mx-auto max-w-2xl text-center">
+          <h2
+            id="faq-heading"
+            className="text-3xl font-bold tracking-tight sm:text-4xl"
+          >
+            Questions about{" "}
+            <span className="gradient-text">Swappy</span>
+          </h2>
+          <p className="mt-4 text-lg text-gray-400">
+            Quick answers about creator market intelligence and how Swappy
+            helps content creators.
+          </p>
+        </div>
+        <div className="mx-auto mt-12 max-w-3xl space-y-4">
+          {faqs.map((item) => (
+            <details
+              key={item.q}
+              className="glass group rounded-2xl px-6 py-4 open:pb-5"
+            >
+              <summary className="cursor-pointer list-none text-left text-base font-semibold text-white marker:content-none">
+                {item.q}
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-gray-400">
+                {item.a}
+              </p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {/* ── Bottom CTA ────────────────────────────────── */}
       <section className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600/20 to-cyan-500/20 p-12 text-center sm:p-16">
@@ -264,6 +328,10 @@ export default function LandingPage() {
         <p className="mt-2">
           <Link href="/trends" className="text-gray-400 hover:text-white">
             Live trends
+          </Link>
+          {" · "}
+          <Link href="/#faq" className="text-gray-400 hover:text-white">
+            FAQ
           </Link>
           {" · "}
           <Link href="/auth/register" className="text-gray-400 hover:text-white">

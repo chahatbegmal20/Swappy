@@ -15,19 +15,38 @@ export function getSiteUrl(): string {
 }
 
 export const SITE_NAME = "Swappy";
-export const SITE_TAGLINE = "Creator Market Intelligence";
+export const SITE_TAGLINE = "Creator Market Intelligence Platform";
 
 export const DEFAULT_DESCRIPTION =
-  "Swappy is AI-powered creator market intelligence for YouTubers, TikTokers, and social creators. Predict trends, score virality, and know before you publish.";
+  "Swappy is a free creator market intelligence platform for YouTube, TikTok, Instagram, and social media creators. " +
+  "Get AI content scoring, virality prediction, trend tracking, audience fit analysis, and the best time to publish — before you post.";
 
 export const DEFAULT_KEYWORDS = [
   "Swappy",
+  "Swappy AI",
+  "Swappy creator",
+  "Swappy content",
   "creator market intelligence",
-  "content creator AI",
-  "virality prediction",
-  "YouTube trend analysis",
-  "TikTok trend tool",
-  "content scoring",
-  "publish timing",
-  "creator analytics",
+  "creator marketplace intelligence",
+  "content marketplace intelligence",
+  "content market intelligence",
+  "AI for content creators",
+  "YouTube analytics AI",
+  "TikTok analytics tool",
+  "Instagram content strategy",
+  "virality prediction tool",
+  "predict video virality",
+  "content virality score",
+  "trend intelligence for creators",
+  "YouTube trend tracker",
+  "TikTok trend finder",
+  "best time to post on YouTube",
+  "best time to post on TikTok",
+  "audience fit analysis",
+  "content scoring AI",
+  "publish with confidence",
+  "creator economy tools",
+  "social media intelligence platform",
+  "pre-publish content analysis",
+  "AI thumbnail and video analysis",
 ];
