@@ -18,6 +18,13 @@ Successfully deployed the early staging stack:
 - **Database:** MongoDB Atlas — Network Access allows `0.0.0.0/0` so Render can connect
 - **Wiring:** `FRONTEND_URL` / `BACKEND_URL` / `NEXT_PUBLIC_API_URL` point at the deployed HTTPS hosts (not localhost)
 
+### Domain & SEO (student budget)
+
+- A custom domain (~US$8–15/year on Porkbun/Namecheap for `.com` / `.dev`) helps trust and branding more than ranking magic.
+- You can stay on `swappy.vercel.app` while learning; buy a domain when ready, point DNS to Vercel, set `NEXT_PUBLIC_SITE_URL`.
+- Technical SEO is in the Next app: `robots.ts`, `sitemap.ts`, Open Graph metadata, JSON-LD, crawlable landing page.
+- After deploy: Google Search Console → add property → submit `https://yoursite/sitemap.xml`.
+
 ---
 
 ## 1. Frontend (already done)

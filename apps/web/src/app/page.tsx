@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import {
   TrendingUp,
@@ -14,6 +12,14 @@ import {
   Sparkles,
   CheckCircle2,
 } from "lucide-react";
+import type { Metadata } from "next";
+import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: `${SITE_NAME} — ${SITE_TAGLINE} | Know Before You Publish`,
+  description: DEFAULT_DESCRIPTION,
+  alternates: { canonical: "/" },
+};
 
 const features = [
   {
@@ -98,17 +104,17 @@ export default function LandingPage() {
           <div className="max-w-xl">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm text-indigo-300">
               <Sparkles className="h-3.5 w-3.5" />
-              AI-Powered Creator Intelligence
+              Swappy — AI Creator Market Intelligence
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-              Know{" "}
-              <span className="gradient-text">Before You</span>{" "}
-              Publish
+              <span className="gradient-text">Swappy</span>
+              {" "}
+              — know before you publish
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-gray-400 sm:text-xl">
-              AI-powered market intelligence for content creators. Predict
-              trends, analyze competition, and maximize your content&apos;s
-              impact before it goes live.
+              Creator market intelligence for YouTube, TikTok, and social
+              creators. Predict trends, score virality and audience fit, and
+              maximize impact before your content goes live.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
@@ -252,7 +258,18 @@ export default function LandingPage() {
 
       {/* ── Footer ────────────────────────────────────── */}
       <footer className="border-t border-white/5 py-10 text-center text-sm text-gray-500">
-        <p>&copy; {new Date().getFullYear()} Swappy. All rights reserved.</p>
+        <p>
+          &copy; Swappy — Creator Market Intelligence. All rights reserved.
+        </p>
+        <p className="mt-2">
+          <Link href="/trends" className="text-gray-400 hover:text-white">
+            Live trends
+          </Link>
+          {" · "}
+          <Link href="/auth/register" className="text-gray-400 hover:text-white">
+            Start free
+          </Link>
+        </p>
       </footer>
     </div>
   );
