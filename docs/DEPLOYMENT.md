@@ -13,17 +13,27 @@ Do **not** maintain long-lived `dev` / `prod` branches. Environments are separat
 
 Successfully deployed the early staging stack:
 
-- **Frontend:** Vercel (`https://swappy.vercel.app`) with Root Directory `apps/web`
+- **Frontend:** Vercel + custom domain `https://www.swappystudio.com` (Root Directory `apps/web`)
 - **Backend:** Render FastAPI (no Docker), `PYTHON_VERSION=3.11.9`, slim `requirements-api.txt`
 - **Database:** MongoDB Atlas — Network Access allows `0.0.0.0/0` so Render can connect
 - **Wiring:** `FRONTEND_URL` / `BACKEND_URL` / `NEXT_PUBLIC_API_URL` point at the deployed HTTPS hosts (not localhost)
 
-### Domain & SEO (student budget)
+### Custom domain: swappystudio.com (Squarespace → Vercel)
 
-- A custom domain (~US$8–15/year on Porkbun/Namecheap for `.com` / `.dev`) helps trust and branding more than ranking magic.
-- You can stay on `swappy.vercel.app` while learning; buy a domain when ready, point DNS to Vercel, set `NEXT_PUBLIC_SITE_URL`.
-- Technical SEO is in the Next app: `robots.ts`, `sitemap.ts`, Open Graph metadata, JSON-LD, crawlable landing page.
-- After deploy: Google Search Console → add property → submit `https://yoursite/sitemap.xml`.
+1. **Vercel** → Project → **Settings → Domains** → add `swappystudio.com` and `www.swappystudio.com`.
+   - Prefer **www** as primary; redirect apex → www (or the reverse — pick one).
+2. **Squarespace Domains** → **DNS → DNS Settings** — match what Vercel shows for *this* project (do not invent values):
+   - Apex `@` **A** → usually `216.198.79.1` or `76.76.21.21` (use Vercel’s value)
+   - `www` **CNAME** → `cname.vercel-dns.com` or the project-specific `*.vercel-dns-*.com` target Vercel lists
+3. Wait for Vercel to show **Valid Configuration** (can take minutes to a few hours).
+4. Set env vars, then **redeploy** web + API:
+   - Vercel: `NEXT_PUBLIC_SITE_URL=https://www.swappystudio.com`
+   - Render: `FRONTEND_URL=https://www.swappystudio.com`
+   - Render: `CORS_ALLOW_ORIGINS=https://swappy.vercel.app,https://swappystudio.com`
+5. **Google Cloud Console** (OAuth client) → Authorized JavaScript origins: add `https://www.swappystudio.com` and `https://swappystudio.com`. Redirect URI stays `{BACKEND_URL}/api/v1/auth/social/google/callback` (Render URL).
+6. **Google Search Console** → add `https://www.swappystudio.com` → submit `https://www.swappystudio.com/sitemap.xml`.
+
+Technical SEO lives in the Next app: `robots.ts`, `sitemap.ts`, Open Graph, JSON-LD, crawlable landing page.
 
 ---
 
@@ -87,8 +97,9 @@ PYTHON_VERSION=3.11.9
 DATABASE_URL=mongodb+srv://...
 MONGO_DB_NAME=swappy_staging
 JWT_SECRET=<click Generate — do NOT paste local .env default>
-FRONTEND_URL=https://swappy.vercel.app
+FRONTEND_URL=https://www.swappystudio.com
 BACKEND_URL=https://<your-service>.onrender.com
+CORS_ALLOW_ORIGINS=https://swappy.vercel.app,https://swappystudio.com
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
@@ -97,7 +108,7 @@ Notes:
 
 - **Do not** copy `JWT_SECRET=swappy-dev-secret-change-in-production` from local `.env` — staging rejects it. Use Render’s **Generate** button (32+ chars).
 - `BACKEND_URL` auto-fills from Render’s `RENDER_EXTERNAL_URL` if you leave a localhost value; set it explicitly to your `https://….onrender.com` URL when you know it.
-- `FRONTEND_URL` must be your real Vercel HTTPS URL (e.g. `https://swappy.vercel.app`), not localhost.
+- `FRONTEND_URL` must be your public HTTPS site (`https://www.swappystudio.com`), not localhost.
 - Pin **Python 3.11** in Render env: `PYTHON_VERSION=3.11.9`, then **Manual Deploy → Clear build cache & deploy**. Logs must show `Python 3.11.x` (not 3.14) — 3.14 often breaks Atlas TLS (`TLSV1_ALERT_INTERNAL_ERROR`).
 - Atlas → **Network Access** → allow `0.0.0.0/0` while bootstrapping (or Render’s IPs).
 - `ALLOW_MOCK_STORAGE=true` lets uploads work without R2/S3 for early demos.

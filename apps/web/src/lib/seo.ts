@@ -11,7 +11,7 @@ export function getSiteUrl(): string {
     return withProtocol.replace(/\/$/, "");
   }
 
-  return "https://swappy.vercel.app";
+  return "https://www.swappystudio.com";
 }
 
 export const SITE_NAME = "Swappy";
