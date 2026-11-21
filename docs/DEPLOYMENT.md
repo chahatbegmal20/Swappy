@@ -67,19 +67,23 @@ Copy from [`.env.staging.example`](../.env.staging.example) and set at least:
 APP_ENV=staging
 APP_DEBUG=false
 ALLOW_MOCK_STORAGE=true
+PYTHON_VERSION=3.11.9
 DATABASE_URL=mongodb+srv://...
 MONGO_DB_NAME=swappy_staging
-JWT_SECRET=<random-32+-chars>
-FRONTEND_URL=https://<your-vercel-app>.vercel.app
-BACKEND_URL=https://<your-render-service>.onrender.com
+JWT_SECRET=<click Generate — do NOT paste local .env default>
+FRONTEND_URL=https://swappy.vercel.app
+BACKEND_URL=https://<your-service>.onrender.com
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
 
 Notes:
 
-- Set `BACKEND_URL` **after** the first deploy assigns an `*.onrender.com` hostname, then **redeploy**.
-- `ALLOW_MOCK_STORAGE=true` lets uploads work without R2/S3 for early demos (files land on the Render disk via `/mock-upload`). Turn this off and configure R2 when you harden production.
+- **Do not** copy `JWT_SECRET=swappy-dev-secret-change-in-production` from local `.env` — staging rejects it. Use Render’s **Generate** button (32+ chars).
+- `BACKEND_URL` auto-fills from Render’s `RENDER_EXTERNAL_URL` if you leave a localhost value; set it explicitly to your `https://….onrender.com` URL when you know it.
+- `FRONTEND_URL` must be your real Vercel HTTPS URL (e.g. `https://swappy.vercel.app`), not localhost.
+- Pin **Python 3.11** (`runtime.txt` / `PYTHON_VERSION=3.11.9`). Python 3.14 works for install but is unnecessary risk.
+- `ALLOW_MOCK_STORAGE=true` lets uploads work without R2/S3 for early demos.
 - Free Render services **spin down** after idle time; the first request after sleep can take ~30–60s.
 
 ### Verify

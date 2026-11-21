@@ -1,7 +1,12 @@
+import logging
+import os
+import secrets
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 def _find_project_root() -> Path:
@@ -86,6 +91,28 @@ class Settings(BaseSettings):
             )
         return normalized
 
+    @model_validator(mode="after")
+    def apply_platform_defaults(self):
+        """Fill cloud-platform URLs/secrets so first Render boot can succeed."""
+        render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+        if render_url.startswith("https://") and not self.BACKEND_URL.startswith("https://"):
+            object.__setattr__(self, "BACKEND_URL", render_url)
+            logger.info("BACKEND_URL defaulted from RENDER_EXTERNAL_URL=%s", render_url)
+
+        if not self.allow_insecure_defaults:
+            jwt = self.JWT_SECRET.strip()
+            if jwt in _INSECURE_JWT_DEFAULTS or len(jwt) < 32:
+                # Prefer an explicit env secret; otherwise mint one so the service can boot.
+                generated = secrets.token_urlsafe(48)
+                object.__setattr__(self, "JWT_SECRET", generated)
+                logger.warning(
+                    "JWT_SECRET was missing/insecure for APP_ENV=%s — generated an ephemeral "
+                    "secret for this process. Set a stable JWT_SECRET in the host env "
+                    "(Render → Environment → Generate) so tokens survive restarts.",
+                    self.APP_ENV,
+                )
+        return self
+
     @property
     def is_development(self) -> bool:
         return self.APP_ENV == "development"
@@ -120,14 +147,21 @@ class Settings(BaseSettings):
         problems: list[str] = []
         if self.JWT_SECRET.strip() in _INSECURE_JWT_DEFAULTS or len(self.JWT_SECRET) < 32:
             problems.append(
-                "JWT_SECRET must be a unique value of at least 32 characters"
+                "JWT_SECRET must be a unique value of at least 32 characters "
+                "(do not reuse the local .env default)"
             )
         if not self.DATABASE_URL or self.DATABASE_URL.startswith("mongodb://localhost"):
             problems.append("DATABASE_URL must point at Atlas (or another remote MongoDB)")
         if not self.FRONTEND_URL.startswith("https://"):
-            problems.append("FRONTEND_URL must be an https:// URL")
+            problems.append(
+                "FRONTEND_URL must be your Vercel https:// URL "
+                "(e.g. https://swappy.vercel.app), not localhost"
+            )
         if not self.BACKEND_URL.startswith("https://"):
-            problems.append("BACKEND_URL must be an https:// URL")
+            problems.append(
+                "BACKEND_URL must be an https:// URL "
+                "(on Render this is usually auto-filled from RENDER_EXTERNAL_URL)"
+            )
         if self.APP_DEBUG and self.is_production:
             problems.append("APP_DEBUG must be false in production")
 

@@ -28,13 +28,14 @@ services:
         value: HS256
       - key: JWT_EXPIRATION_MINUTES
         value: "1440"
-      # Fill these in the Render dashboard (or sync from a secret group)
-      - key: DATABASE_URL
-        sync: false
+      # Random secret — do NOT paste the local .env JWT_SECRET default
       - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
         sync: false
       - key: FRONTEND_URL
         sync: false
+      # Optional: Render usually injects RENDER_EXTERNAL_URL; BACKEND_URL auto-fills from it
       - key: BACKEND_URL
         sync: false
       - key: GOOGLE_CLIENT_ID

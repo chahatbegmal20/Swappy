@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from apps.api.core.config import Settings
@@ -19,20 +21,50 @@ def test_development_allows_local_defaults():
     )
 
 
-def test_production_rejects_insecure_defaults():
+def test_staging_uses_render_external_url_for_backend(monkeypatch):
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://swappy-api.onrender.com")
+    settings = Settings(
+        APP_ENV="staging",
+        APP_DEBUG=False,
+        JWT_SECRET="a" * 32,
+        DATABASE_URL="mongodb+srv://user:pass@cluster.example.mongodb.net/",
+        FRONTEND_URL="https://swappy.vercel.app",
+        BACKEND_URL="http://127.0.0.1:8000",
+    )
+    assert settings.BACKEND_URL == "https://swappy-api.onrender.com"
+    settings.validate_for_runtime()
+
+
+def test_staging_replaces_insecure_jwt_secret(monkeypatch):
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    settings = Settings(
+        APP_ENV="staging",
+        APP_DEBUG=False,
+        JWT_SECRET="swappy-dev-secret-change-in-production",
+        DATABASE_URL="mongodb+srv://user:pass@cluster.example.mongodb.net/",
+        FRONTEND_URL="https://swappy.vercel.app",
+        BACKEND_URL="https://swappy-api.onrender.com",
+    )
+    assert settings.JWT_SECRET != "swappy-dev-secret-change-in-production"
+    assert len(settings.JWT_SECRET) >= 32
+    settings.validate_for_runtime()
+
+
+def test_production_rejects_localhost_frontend():
     settings = Settings(
         APP_ENV="production",
         APP_DEBUG=False,
-        JWT_SECRET="swappy-dev-secret-change-in-production",
-        DATABASE_URL="mongodb://localhost:27017",
+        JWT_SECRET="a" * 32,
+        DATABASE_URL="mongodb+srv://user:pass@cluster.example.mongodb.net/",
         FRONTEND_URL="http://localhost:3000",
-        BACKEND_URL="http://127.0.0.1:8000",
+        BACKEND_URL="https://api.example.com",
     )
-    with pytest.raises(RuntimeError, match="Invalid configuration"):
+    with pytest.raises(RuntimeError, match="FRONTEND_URL"):
         settings.validate_for_runtime()
 
 
-def test_production_accepts_hardened_config():
+def test_production_accepts_hardened_config(monkeypatch):
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
     settings = Settings(
         APP_ENV="production",
         APP_DEBUG=False,

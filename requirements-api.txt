@@ -1,22 +1,19 @@
 # Slim API runtime for Render / cloud hosts (no Docker, no torch).
-# Full local ML stack remains in pyproject.toml for development machines.
-fastapi>=0.115.0
-uvicorn[standard]>=0.32.0
+# Pin Python 3.11 via runtime.txt / PYTHON_VERSION — do not use 3.14 on free tier.
+fastapi>=0.115.0,<0.120.0
+uvicorn[standard]>=0.32.0,<0.40.0
 python-multipart>=0.0.12
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
-bcrypt>=4.0.0
-motor>=3.6.0
-beanie>=1.27.0
-pymongo[srv]>=4.10.0
+bcrypt>=4.0.0,<5.0.0
+motor>=3.6.0,<4.0.0
+beanie>=1.27.0,<2.1.0
+pymongo>=4.10.0,<5.0.0
 dnspython>=2.7.0
-pydantic[email]>=2.9.0
-pydantic-settings>=2.6.0
+pydantic[email]>=2.9.0,<3.0.0
+pydantic-settings>=2.6.0,<3.0.0
 httpx>=0.27.0
 requests>=2.32.0
 boto3>=1.35.0
 python-dotenv>=1.0.0
-redis>=5.2.0
-celery>=5.4.0
-numpy>=2.0.0
-pandas>=2.2.0
+numpy>=2.0.0,<3.0.0
