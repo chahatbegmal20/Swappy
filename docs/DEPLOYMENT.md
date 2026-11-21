@@ -130,7 +130,7 @@ curl https://<your-render-service>.onrender.com/api/v1/auth/social/providers
 1. Vercel → Project → Settings → Environment Variables  
    `NEXT_PUBLIC_API_URL=https://<your-render-service>.onrender.com`
 2. Redeploy Vercel
-3. Render → `FRONTEND_URL=https://<your-vercel-app>.vercel.app` → redeploy API
+3. Render → `FRONTEND_URL=https://www.swappystudio.com` → redeploy API
 
 ---
 
@@ -140,7 +140,9 @@ In Google Cloud Console → OAuth client:
 
 **Authorized JavaScript origins**
 
-- `https://<your-vercel-app>.vercel.app`
+- `https://www.swappystudio.com`
+- `https://swappystudio.com`
+- `https://swappy.vercel.app` (keep while the old URL still works)
 
 **Authorized redirect URIs**
 
