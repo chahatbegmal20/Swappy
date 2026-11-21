@@ -9,6 +9,15 @@ feature/* ──PR──▶ main ──auto──▶ Vercel web + Render API
 
 Do **not** maintain long-lived `dev` / `prod` branches. Environments are separate deploy targets with separate secrets.
 
+### Deployment status (Chahat Begmal)
+
+Successfully deployed the early staging stack:
+
+- **Frontend:** Vercel (`https://swappy.vercel.app`) with Root Directory `apps/web`
+- **Backend:** Render FastAPI (no Docker), `PYTHON_VERSION=3.11.9`, slim `requirements-api.txt`
+- **Database:** MongoDB Atlas — Network Access allows `0.0.0.0/0` so Render can connect
+- **Wiring:** `FRONTEND_URL` / `BACKEND_URL` / `NEXT_PUBLIC_API_URL` point at the deployed HTTPS hosts (not localhost)
+
 ---
 
 ## 1. Frontend (already done)
