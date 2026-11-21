@@ -383,7 +383,7 @@ async def login(body: UserLogin):
 async def social_authorize(provider: str, request: Request):
     """
     Step 1: Redirect the user's browser to the OAuth provider's consent screen.
-    The frontend opens this URL in a popup window.
+    The frontend navigates here in the same tab (no popup).
     """
     cfg = _get_oauth_providers().get(provider)
     if not cfg:

@@ -6,7 +6,7 @@ import { API_BASE, api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, ArrowRight, ExternalLink } from "lucide-react";
+import { Phone, ArrowRight } from "lucide-react";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -75,87 +75,31 @@ export function SocialAuth() {
   }, []);
 
   useEffect(() => {
+    // Warm the API (helps Render free-tier cold starts) and prefetch provider flags.
+    fetch(`${API_BASE}/health`).catch(() => {});
     loadProviders().catch(() => {
-      // API may still be starting; click handler will retry.
+      // First click will surface a clearer error if the API is still waking up.
     });
   }, [loadProviders]);
 
-  const handleOAuthMessage = useCallback(
-    async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== "SWAPPY_OAUTH_SUCCESS") return;
-
-      const { token } = event.data;
-      if (!token) return;
-
-      try {
-        api.setToken(token);
-        const user = await api.getMe();
-        setUser(user);
-        router.push("/dashboard");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to complete sign-in");
-      } finally {
-        setLoading("");
-      }
-    },
-    [router, setUser],
-  );
-
-  useEffect(() => {
-    window.addEventListener("message", handleOAuthMessage);
-    return () => window.removeEventListener("message", handleOAuthMessage);
-  }, [handleOAuthMessage]);
-
-  async function openOAuthPopup(provider: string) {
+  function startOAuthRedirect(provider: string) {
     setError("");
     setLoading(provider);
 
-    let providerMap = providers;
-    if (!providerMap?.[provider]) {
-      try {
-        providerMap = await loadProviders();
-      } catch {
-        setError("Could not reach the API. Make sure the backend is running on port 8000, then try again.");
-        setLoading("");
-        return;
-      }
-    }
-
-    const providerInfo = providerMap?.[provider];
-    if (!providerInfo?.configured) {
+    const providerInfo = providers?.[provider];
+    if (providers !== null && providerInfo && !providerInfo.configured) {
       setError(
         `${provider.charAt(0).toUpperCase() + provider.slice(1)} is not configured yet. ` +
-        `Add ${provider.toUpperCase()}_CLIENT_ID and ${provider.toUpperCase()}_CLIENT_SECRET to your .env file, then restart the API.`,
+          `Add ${provider.toUpperCase()}_CLIENT_ID and ${provider.toUpperCase()}_CLIENT_SECRET on the API host, then redeploy.`,
       );
       setLoading("");
       return;
     }
 
+    // Same-tab redirect — no popup blockers, works on phones and first visits.
+    // Do not await network calls before navigating (that breaks the user gesture).
     const url = `${API_BASE}/api/v1/auth/social/${provider}/authorize`;
-    const width = 500;
-    const height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-
-    const popup = window.open(
-      url,
-      `swappy_oauth_${provider}`,
-      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`,
-    );
-
-    if (!popup) {
-      setError("Popup blocked. Please allow popups for this site and try again.");
-      setLoading("");
-      return;
-    }
-
-    const pollTimer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(pollTimer);
-        setLoading("");
-      }
-    }, 500);
+    window.location.assign(url);
   }
 
   async function handlePhoneSendOtp(e: FormEvent) {
@@ -227,7 +171,8 @@ export function SocialAuth() {
             return (
               <button
                 key={id}
-                onClick={() => openOAuthPopup(id)}
+                type="button"
+                onClick={() => startOAuthRedirect(id)}
                 disabled={!!loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-700/50 disabled:opacity-50"
               >
@@ -241,8 +186,8 @@ export function SocialAuth() {
                 {loading === id && (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-white" />
                 )}
-                {configured && loading !== id && (
-                  <ExternalLink className="h-3.5 w-3.5 text-gray-500" />
+                {loading === id && (
+                  <span className="text-[10px] text-gray-400">Redirecting…</span>
                 )}
               </button>
             );
