@@ -13,14 +13,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/scoring", tags=["scoring"])
 
 _pipeline = None
+_pipeline_failed = False
 
 
 def _get_pipeline():
-    global _pipeline
-    if _pipeline is None:
+    """Prefer full ML pipeline; return None on slim cloud installs without heavy deps."""
+    global _pipeline, _pipeline_failed
+    if _pipeline is not None or _pipeline_failed:
+        return _pipeline
+    try:
         from services.ml_inference.pipeline import ScoringPipeline
+
         _pipeline = ScoringPipeline()
         logger.info("ML Scoring Pipeline initialized")
+    except Exception as exc:
+        _pipeline_failed = True
+        logger.warning(
+            "ML pipeline unavailable (%s) — using heuristic scoring_engine fallback",
+            exc,
+        )
+        _pipeline = None
     return _pipeline
 
 
@@ -51,21 +63,28 @@ async def analyze_project(
         })
 
     pipeline = _get_pipeline()
-    # Run CPU-heavy model inference off the event loop so auth/health stay responsive
-    # while sentence-transformers / XGBoost load on first request.
-    score_data = await asyncio.to_thread(
-        pipeline.analyze,
-        title=project.name,
-        description=project.description,
-        hashtags=project.hashtags,
-        genre_tags=project.genres,
-        mood_tags=project.moods,
-        target_platform=project.target_platform,
-        target_audience=project.target_audience,
-        language=project.language or "en",
-        region=project.region,
-        upload_file_paths=upload_file_paths,
-    )
+    if pipeline is not None:
+        # Run CPU-heavy model inference off the event loop so auth/health stay responsive
+        # while sentence-transformers / XGBoost load on first request.
+        score_data = await asyncio.to_thread(
+            pipeline.analyze,
+            title=project.name,
+            description=project.description,
+            hashtags=project.hashtags,
+            genre_tags=project.genres,
+            mood_tags=project.moods,
+            target_platform=project.target_platform,
+            target_audience=project.target_audience,
+            language=project.language or "en",
+            region=project.region,
+            upload_file_paths=upload_file_paths,
+        )
+    else:
+        from apps.api.services.scoring_engine import generate_scores
+
+        # Heuristic scorer expects uploads on the project object
+        project.uploads = uploads  # type: ignore[attr-defined]
+        score_data = generate_scores(project)
 
     score = ContentScore(project_id=project.id, **score_data)
     await score.insert()

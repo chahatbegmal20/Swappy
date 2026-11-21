@@ -1,37 +1,134 @@
 # Swappy — Environments & Deployment
 
-Early-stage target: **Vercel** (Next.js) + **Railway** (FastAPI) + **MongoDB Atlas** + **Cloudflare R2** (or S3).  
-Git workflow: **feature branch → PR → `main`**, then promote the same revision staging → production.
+Early-stage target: **Vercel** (Next.js) + **Render** (FastAPI, no Docker) + **MongoDB Atlas**.  
+Optional later: Cloudflare R2 for uploads, Redis/Celery for workers.
 
 ```text
-feature/* ──PR──▶ main ──auto──▶ staging ──smoke──▶ production
+feature/* ──PR──▶ main ──auto──▶ Vercel web + Render API
 ```
 
 Do **not** maintain long-lived `dev` / `prod` branches. Environments are separate deploy targets with separate secrets.
 
 ---
 
-## 1. Atlas databases
+## 1. Frontend (already done)
 
-Create two database names on your cluster (or separate clusters later):
+Vercel project with:
 
-| Environment | `MONGO_DB_NAME` |
-|-------------|-----------------|
-| Local       | `swappy` (or `swappy_dev`) |
-| Staging     | `swappy_staging` |
-| Production  | `swappy_prod` |
+- **Root Directory:** `apps/web`
+- Env (set after API is live):
 
-Network Access: allow Railway egress IPs (or `0.0.0.0/0` only while bootstrapping).
+| Name | Value |
+|------|--------|
+| `NEXT_PUBLIC_API_URL` | `https://<your-render-service>.onrender.com` |
+
+Redeploy the web app after changing this env so the browser picks it up.
 
 ---
 
-## 2. Object storage (R2 / S3)
+## 2. Atlas database
 
-1. Create buckets: `swappy-staging-uploads`, `swappy-prod-uploads`
-2. Create an API token with object read/write
-3. Set on the API service:
+| Environment | `MONGO_DB_NAME` |
+|-------------|-----------------|
+| Local | `swappy` |
+| Cloud (first deploy) | `swappy_staging` |
+
+Under Atlas **Network Access**, allow `0.0.0.0/0` while bootstrapping (or add Render’s egress IPs later).
+
+Use the same `DATABASE_URL` style as local `.env` (`mongodb+srv://...`).
+
+---
+
+## 3. Backend on Render (no Docker)
+
+Repo includes [`render.yaml`](../render.yaml) and a slim [`requirements-api.txt`](../requirements-api.txt) (avoids torch / heavy ML on free tier). Scoring falls back to the heuristic engine when the full ML stack is missing.
+
+### Create the service
+
+1. Open [Render Dashboard](https://dashboard.render.com/) → **New** → **Blueprint**
+2. Connect `chahatbegmal20/Swappy` (branch `main`)
+3. Apply the blueprint → service `swappy-api`
+   - Or: **New → Web Service** → same repo → settings below manually
+
+**Manual Web Service settings (if not using Blueprint):**
+
+| Field | Value |
+|-------|--------|
+| Runtime | Python 3 |
+| Build command | `pip install -r requirements-api.txt` |
+| Start command | `PYTHONPATH=. uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT` |
+| Health check path | `/health` |
+
+### Environment variables (Render → Environment)
+
+Copy from [`.env.staging.example`](../.env.staging.example) and set at least:
 
 ```env
+APP_ENV=staging
+APP_DEBUG=false
+ALLOW_MOCK_STORAGE=true
+DATABASE_URL=mongodb+srv://...
+MONGO_DB_NAME=swappy_staging
+JWT_SECRET=<random-32+-chars>
+FRONTEND_URL=https://<your-vercel-app>.vercel.app
+BACKEND_URL=https://<your-render-service>.onrender.com
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+```
+
+Notes:
+
+- Set `BACKEND_URL` **after** the first deploy assigns an `*.onrender.com` hostname, then **redeploy**.
+- `ALLOW_MOCK_STORAGE=true` lets uploads work without R2/S3 for early demos (files land on the Render disk via `/mock-upload`). Turn this off and configure R2 when you harden production.
+- Free Render services **spin down** after idle time; the first request after sleep can take ~30–60s.
+
+### Verify
+
+```bash
+curl https://<your-render-service>.onrender.com/health
+# {"status":"healthy","env":"staging"}
+
+curl https://<your-render-service>.onrender.com/api/v1/auth/social/providers
+```
+
+---
+
+## 4. Wire frontend ↔ API
+
+1. Vercel → Project → Settings → Environment Variables  
+   `NEXT_PUBLIC_API_URL=https://<your-render-service>.onrender.com`
+2. Redeploy Vercel
+3. Render → `FRONTEND_URL=https://<your-vercel-app>.vercel.app` → redeploy API
+
+---
+
+## 5. Google OAuth for the public URLs
+
+In Google Cloud Console → OAuth client:
+
+**Authorized JavaScript origins**
+
+- `https://<your-vercel-app>.vercel.app`
+
+**Authorized redirect URIs**
+
+- `https://<your-render-service>.onrender.com/api/v1/auth/social/google/callback`
+
+Confirm with:
+
+`GET /api/v1/auth/social/providers` → `providers.google.redirect_uri`
+
+---
+
+## 6. Object storage (optional next step)
+
+When you outgrow mock uploads:
+
+1. Create a Cloudflare R2 bucket
+2. Set on Render:
+
+```env
+ALLOW_MOCK_STORAGE=false
 S3_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com
 S3_ACCESS_KEY=...
 S3_SECRET_KEY=...
@@ -40,75 +137,28 @@ S3_REGION=auto
 S3_FORCE_PATH_STYLE=true
 ```
 
-Locally you can keep MinIO via `docker compose up -d` or continue using mock uploads when MinIO is down.
-
 ---
 
-## 3. Railway — API (staging first)
+## 7. Required env checklist
 
-1. New Railway project → **Deploy from GitHub** → `chahatbegmal20/Swappy`
-2. Root / Dockerfile: uses [`railway.toml`](../railway.toml) → [`infra/docker/Dockerfile.api`](../infra/docker/Dockerfile.api)
-3. Create an environment named **staging** and paste values from [`.env.staging.example`](../.env.staging.example)
-4. After first deploy, copy the public HTTPS URL into:
-   - `BACKEND_URL`
-   - Vercel `NEXT_PUBLIC_API_URL`
-5. Duplicate the service/environment for **production** using [`.env.production.example`](../.env.production.example)
-
-Health check: `GET /health` should return `{"status":"healthy","env":"staging"}`.
-
----
-
-## 4. Vercel — Web
-
-1. Import the same GitHub repo in Vercel
-2. **Root Directory:** `apps/web`
-3. Framework: Next.js (see [`apps/web/vercel.json`](../apps/web/vercel.json))
-4. Project env:
-
-| Name | Staging example |
-|------|-----------------|
-| `NEXT_PUBLIC_API_URL` | `https://<railway-staging-host>` |
-
-5. Production branch: `main`  
-6. Optional: create a second Vercel project (or use Preview + Production envs) for a stable staging hostname
-
-After deploy, set API `FRONTEND_URL` to the Vercel HTTPS URL and redeploy the API so CORS + OAuth redirects match.
-
----
-
-## 5. Promote staging → production
-
-1. Merge PR to `main`
-2. Confirm staging deploy is healthy (auth, trends, upload smoke)
-3. Deploy / promote the **same commit** on Railway production + Vercel production
-4. Use GitHub Environment protection rules for `production` when the team grows
-
----
-
-## 6. Required env checklist
-
-See also [`.env.example`](../.env.example), [`.env.staging.example`](../.env.staging.example), [`.env.production.example`](../.env.production.example).
-
-| Variable | Local | Staging/Prod |
-|----------|-------|--------------|
-| `APP_ENV` | `development` | `staging` / `production` |
+| Variable | Local | Render staging |
+|----------|-------|----------------|
+| `APP_ENV` | `development` | `staging` |
 | `APP_DEBUG` | `true` | `false` |
-| `DATABASE_URL` | Atlas or local | Atlas |
-| `MONGO_DB_NAME` | `swappy` | `swappy_staging` / `swappy_prod` |
+| `ALLOW_MOCK_STORAGE` | n/a | `true` until R2 |
+| `DATABASE_URL` | Atlas | Atlas |
+| `MONGO_DB_NAME` | `swappy` | `swappy_staging` |
 | `JWT_SECRET` | weak OK | unique ≥ 32 chars |
-| `FRONTEND_URL` | `http://localhost:3000` | `https://…` |
-| `BACKEND_URL` | `http://127.0.0.1:8000` | `https://…` |
-| `S3_*` | MinIO or mock | R2/S3 required |
-| `NEXT_PUBLIC_API_URL` | optional | Railway API URL |
+| `FRONTEND_URL` | `http://localhost:3000` | Vercel HTTPS URL |
+| `BACKEND_URL` | `http://127.0.0.1:8000` | Render HTTPS URL |
+| `NEXT_PUBLIC_API_URL` | optional | Render HTTPS URL |
 
 Staging/production refuse to start if JWT/DB/HTTPS URLs look unsafe (`Settings.validate_for_runtime`).
 
 ---
 
-## 7. Later migration path
+## 8. Later migration
 
-The API image is already portable. When you outgrow Railway/Vercel:
-
-- Same Dockerfile → Fly.io / Cloud Run / ECS
-- Same Next app → Cloudflare / AWS Amplify / container
-- Same `DATABASE_URL` / `S3_*` / `REDIS_URL` contract — only host env values change
+- Same slim/API start command → Railway / Fly / Cloud Run (Dockerfile already in `infra/docker/`)
+- Same Next app stays on Vercel or moves later
+- Same `DATABASE_URL` / `S3_*` contract — only host env values change

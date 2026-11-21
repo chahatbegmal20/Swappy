@@ -52,7 +52,7 @@ The **frontend** (Next.js in `apps/web`) talks to the **API** (FastAPI in `apps/
 
 ### Infrastructure (early stage)
 - **Local:** `npm run start` + Atlas + mock/MinIO uploads
-- **Staging/Prod:** Vercel (web) + Railway (API) + Atlas + Cloudflare R2
+- **Cloud:** Vercel (web) + Render (API, no Docker) + Atlas; optional Cloudflare R2
 - See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Environments & branching

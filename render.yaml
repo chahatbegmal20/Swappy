@@ -1,0 +1,45 @@
+# Render Blueprint — deploy FastAPI without Docker.
+# Dashboard: New → Blueprint → connect chahatbegmal20/Swappy
+# Docs: docs/DEPLOYMENT.md
+
+services:
+  - type: web
+    name: swappy-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: PYTHONPATH=. uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: APP_ENV
+        value: staging
+      - key: APP_DEBUG
+        value: "false"
+      - key: ALLOW_MOCK_STORAGE
+        value: "true"
+      - key: MONGO_DB_NAME
+        value: swappy_staging
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRATION_MINUTES
+        value: "1440"
+      # Fill these in the Render dashboard (or sync from a secret group)
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: CORS_ALLOW_ORIGINS
+        sync: false

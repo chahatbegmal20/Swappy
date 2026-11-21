@@ -1,8 +1,8 @@
-"""S3-compatible storage client (MinIO locally, R2/S3 in staging/production).
+"""S3-compatible storage client (MinIO locally, R2/S3 in cloud).
 
-In development, if S3 is unreachable, mock presigned URLs point at the local
-API upload endpoint so the product flow still works without Docker.
-Staging/production never fall back to mock storage.
+In development — or when ALLOW_MOCK_STORAGE=true — unreachable S3 falls back to
+mock presigned URLs against the API /mock-upload endpoint so early deploys work
+before R2/S3 is configured.
 """
 import logging
 
@@ -36,7 +36,7 @@ try:
     logger.info("S3-compatible storage connected (endpoint=%s)", settings.S3_ENDPOINT)
 except Exception:
     s3_client = None
-    if settings.is_development:
+    if settings.allow_mock_storage:
         logger.warning("S3/MinIO not available — using mock storage URLs")
     else:
         logger.error(
@@ -57,11 +57,11 @@ def _mock_base() -> str:
 def _require_s3():
     if s3_client:
         return s3_client
-    if settings.is_development:
+    if settings.allow_mock_storage:
         return None
     raise RuntimeError(
         "Object storage is not configured. Set S3_ENDPOINT / S3_ACCESS_KEY / "
-        "S3_SECRET_KEY / S3_BUCKET for staging and production."
+        "S3_SECRET_KEY / S3_BUCKET, or set ALLOW_MOCK_STORAGE=true for early demos."
     )
 
 

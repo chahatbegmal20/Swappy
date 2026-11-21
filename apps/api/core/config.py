@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     # development | staging | production
     APP_ENV: str = "development"
     APP_DEBUG: bool = True
+    # Early-stage cloud bootstrap: allow local mock uploads when S3/R2 is not ready yet
+    ALLOW_MOCK_STORAGE: bool = False
 
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://127.0.0.1:8000"
@@ -99,6 +101,10 @@ class Settings(BaseSettings):
     @property
     def allow_insecure_defaults(self) -> bool:
         return self.is_development
+
+    @property
+    def allow_mock_storage(self) -> bool:
+        return self.is_development or self.ALLOW_MOCK_STORAGE
 
     def google_oauth_redirect_uri(self) -> str:
         return (
