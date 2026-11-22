@@ -1,7 +1,8 @@
 # Swappy — Environments & Deployment
 
-Early-stage target: **Vercel** (Next.js) + **Render** (FastAPI, no Docker) + **MongoDB Atlas**.  
-Optional later: Cloudflare R2 for uploads, Redis/Celery for workers.
+Early-stage target: **Vercel** (Next.js) + **AWS ECS Express Mode** (FastAPI container) + **MongoDB Atlas**.  
+Legacy: Render blueprint (`render.yaml`) still works for a quick free-tier API.  
+**Do not** put the FastAPI API on AWS Amplify Hosting — see [`docs/AWS_API.md`](AWS_API.md).
 
 ```text
 feature/* ──PR──▶ main ──auto──▶ Vercel web + Render API
@@ -14,7 +15,7 @@ Do **not** maintain long-lived `dev` / `prod` branches. Environments are separat
 Successfully deployed the early staging stack:
 
 - **Frontend:** Vercel + custom domain `https://www.swappystudio.com` (Root Directory `apps/web`)
-- **Backend:** Render FastAPI (no Docker), `PYTHON_VERSION=3.11.9`, slim `requirements-api.txt`
+- **Backend:** Prefer AWS ECS Express Mode (`docs/AWS_API.md`); Render remains an optional free-tier fallback
 - **Database:** MongoDB Atlas — Network Access allows `0.0.0.0/0` so Render can connect
 - **Wiring:** `FRONTEND_URL` / `BACKEND_URL` / `NEXT_PUBLIC_API_URL` point at the deployed HTTPS hosts (not localhost)
 
@@ -65,7 +66,11 @@ Use the same `DATABASE_URL` style as local `.env` (`mongodb+srv://...`).
 
 ---
 
-## 3. Backend on Render (no Docker)
+## 3. Backend on AWS (preferred) or Render
+
+**Preferred:** follow [`docs/AWS_API.md`](AWS_API.md) (ECS Express Mode + ECR). Amplify Hosting is not for this API.
+
+### Backend on Render (optional / legacy, no Docker)
 
 Repo includes [`render.yaml`](../render.yaml) and a slim [`requirements-api.txt`](../requirements-api.txt) (avoids torch / heavy ML on free tier). Scoring falls back to the heuristic engine when the full ML stack is missing.
 

@@ -1,5 +1,5 @@
-# Slim API runtime for Render / cloud hosts (no Docker, no torch).
-# Pin Python 3.11 via runtime.txt / PYTHON_VERSION — do not use 3.14 on free tier.
+# Slim API runtime for Render / AWS ECS (Dockerfile.api) — no torch.
+# Pin Python 3.11 — do not use 3.14 on free/small hosts.
 fastapi>=0.115.0,<0.120.0
 uvicorn[standard]>=0.32.0,<0.40.0
 python-multipart>=0.0.12

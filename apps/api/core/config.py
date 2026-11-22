@@ -93,7 +93,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def apply_platform_defaults(self):
-        """Fill cloud-platform URLs/secrets so first Render boot can succeed."""
+        """Fill cloud-platform URLs/secrets so first cloud boot can succeed."""
+        # Render injects RENDER_EXTERNAL_URL; set BACKEND_URL explicitly on ECS/Amplify/etc.
         render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
         if render_url.startswith("https://") and not self.BACKEND_URL.startswith("https://"):
             object.__setattr__(self, "BACKEND_URL", render_url)
@@ -154,13 +155,13 @@ class Settings(BaseSettings):
             problems.append("DATABASE_URL must point at Atlas (or another remote MongoDB)")
         if not self.FRONTEND_URL.startswith("https://"):
             problems.append(
-                "FRONTEND_URL must be your Vercel https:// URL "
-                "(e.g. https://swappy.vercel.app), not localhost"
+                "FRONTEND_URL must be your public https:// site "
+                "(e.g. https://www.swappystudio.com), not localhost"
             )
         if not self.BACKEND_URL.startswith("https://"):
             problems.append(
                 "BACKEND_URL must be an https:// URL "
-                "(on Render this is usually auto-filled from RENDER_EXTERNAL_URL)"
+                "(ECS Express public URL, or Render’s RENDER_EXTERNAL_URL)"
             )
         if self.APP_DEBUG and self.is_production:
             problems.append("APP_DEBUG must be false in production")
