@@ -1,0 +1,70 @@
+# Build the API image in GitHub (no local Docker needed) and push to ECR.
+# After this succeeds, paste the printed Image URI into ECS Express Mode.
+name: Publish API image (ECR)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "services/**"
+      - "requirements-api.txt"
+      - "infra/docker/Dockerfile.api"
+      - ".github/workflows/publish-api-ecr.yml"
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: swappy-api
+
+jobs:
+  build-and-push:
+    name: Build & push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Ensure ECR repository exists
+        run: |
+          aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" --region "$AWS_REGION" \
+            || aws ecr create-repository --repository-name "$ECR_REPOSITORY" --region "$AWS_REGION"
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push
+        id: build
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_URI="$REGISTRY/$ECR_REPOSITORY"
+          docker build -f infra/docker/Dockerfile.api -t "$IMAGE_URI:$IMAGE_TAG" -t "$IMAGE_URI:latest" .
+          docker push "$IMAGE_URI:$IMAGE_TAG"
+          docker push "$IMAGE_URI:latest"
+          echo "image_uri=$IMAGE_URI:latest" >> "$GITHUB_OUTPUT"
+          echo ""
+          echo "========================================"
+          echo "Paste this into ECS Express → Image URI:"
+          echo "$IMAGE_URI:latest"
+          echo "========================================"
+
+      - name: Summary
+        run: |
+          echo "### ECR image ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.build.outputs.image_uri }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "ECS Express Mode → paste that Image URI → leave roles on **Create new role** → Create." >> "$GITHUB_STEP_SUMMARY"

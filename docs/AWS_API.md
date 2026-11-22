@@ -28,26 +28,39 @@ Region tip: use the same region you care about for latency (e.g. `ap-southeast-2
 
 ---
 
-## 2. Build and push the API image
+## 2. Build and push the API image (no local Docker)
 
-From the **repo root** (PowerShell example — replace `ACCOUNT` and `REGION`):
+ECS Express **requires** an Image URI. You do **not** need Docker on your PC — GitHub Actions builds it.
+
+### A. One-time: IAM user for GitHub
+
+1. AWS Console → **IAM** → Users → Create user (e.g. `swappy-github-ecr`)
+2. Attach policies (or a tighter custom policy later):
+   - `AmazonEC2ContainerRegistryPowerUser`
+   - Plus permission to `ecr:CreateRepository` if the repo does not exist yet
+3. **Create access key** → Application running outside AWS
+4. GitHub repo → **Settings → Secrets and variables → Actions** → add:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+
+### B. Run the workflow
+
+1. Push to `main` (or **Actions → Publish API image (ECR) → Run workflow**)
+2. Open the successful run → **Summary** → copy the Image URI  
+   Looks like: `538705322875.dkr.ecr.ap-southeast-2.amazonaws.com/swappy-api:latest`
+
+### C. Optional: local Docker (only if you install Docker Desktop later)
 
 ```powershell
 $ACCOUNT = "538705322875"
 $REGION = "ap-southeast-2"
 $REPO = "$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/swappy-api"
-
 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin "$ACCOUNT.dkr.ecr.$REGION.amazonaws.com"
-
-# create repo once
 aws ecr create-repository --repository-name swappy-api --region $REGION 2>$null
-
 docker build -f infra/docker/Dockerfile.api -t swappy-api:latest .
 docker tag swappy-api:latest "$REPO:latest"
 docker push "$REPO:latest"
 ```
-
-Image is based on `requirements-api.txt` (same slim stack as Render).
 
 ---
 
