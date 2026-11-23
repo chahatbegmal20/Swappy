@@ -76,6 +76,10 @@ body {
     border-color: var(--border);
   }
 
+  .bg-atelier {
+    background-color: var(--border);
+  }
+
   .gradient-text {
     background: linear-gradient(
       120deg,

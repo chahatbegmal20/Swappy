@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Folder,
   Upload,
-  Star,
-  TrendingUp,
   Plus,
   ArrowRight,
   Flame,
   Sparkles,
+  ExternalLink,
+  ArrowUpRight,
 } from "lucide-react";
 import {
   AreaChart,
@@ -24,17 +23,19 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import { api, type Score } from "@/lib/api";
+import { api, type Score, type TrendSignal } from "@/lib/api";
 import {
   cn,
   formatScore,
   getScoreColor,
   getSignalTypeColor,
 } from "@/lib/utils";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  getTrendSourceLabel,
+  getTrendSourceUrl,
+} from "@/lib/trend-links";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScoreRing } from "@/components/ui/score-ring";
 import { AuthGuard } from "@/components/auth-guard";
 import { StudioShell } from "@/components/studio/studio-shell";
 import { NewProjectModal } from "./new-project-modal";
@@ -88,16 +89,15 @@ function DashboardContent() {
           day: "numeric",
         }),
         score: Math.round(s.overall_viability * 100),
-        name: s.model_version,
       })) ?? [];
 
-  const hotTrends = market?.hot_trends?.slice(0, 6) ?? [];
+  const hotTrends = market?.hot_trends?.slice(0, 8) ?? [];
   const emergingTrends = market?.emerging_trends?.slice(0, 6) ?? [];
 
   return (
     <StudioShell
       title="Command"
-      subtitle="Your experience center — score what exists, watch the radar, prepare for agents."
+      subtitle="Score drafts, watch the radar, prepare the agent lane — one atelier surface."
       actions={
         <>
           <Button variant="outline" onClick={() => router.push("/upload")}>
@@ -111,152 +111,192 @@ function DashboardContent() {
         </>
       }
     >
-      {/* Experience lanes strip */}
+      {/* Atelier hero strip — not a card row */}
+      <section className="relative mb-10 overflow-hidden rounded-[1.75rem] border border-atelier bg-surface">
+        <div className="atelier-grain absolute inset-0" aria-hidden />
+        <div
+          className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full opacity-40"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(196,184,165,0.22), transparent 68%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:p-10">
+          <div>
+            <p className="font-display text-[11px] tracking-[0.32em] text-champagne uppercase">
+              Live atelier
+            </p>
+            <h2 className="font-display mt-3 max-w-lg text-3xl leading-tight text-pearl sm:text-4xl">
+              Create with{" "}
+              <span className="gradient-text">predictive confidence</span>
+            </h2>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-atelier">
+              Your projects, viability, and market heat on one surface —
+              champagne, pearl, and steel. No purple dashboard leftovers.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/upload"
+                className="cta-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+              >
+                Open score lane
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/trends"
+                className="cta-ghost inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
+              >
+                Open radar
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-atelier bg-atelier">
+            <Metric
+              label="Projects"
+              value={dashLoading ? "—" : String(totalProjects)}
+            />
+            <Metric
+              label="Uploads"
+              value={dashLoading ? "—" : String(totalUploads)}
+            />
+            <Metric
+              label="Avg viability"
+              value={
+                dashLoading
+                  ? "—"
+                  : avgScore > 0
+                    ? `${formatScore(avgScore)}%`
+                    : "—"
+              }
+              valueClass={avgScore > 0 ? getScoreColor(avgScore) : undefined}
+            />
+            <Metric
+              label="Best score"
+              value={
+                dashLoading
+                  ? "—"
+                  : bestScore > 0
+                    ? `${formatScore(bestScore)}%`
+                    : "—"
+              }
+              valueClass={bestScore > 0 ? getScoreColor(bestScore) : undefined}
+            />
+          </div>
+        </div>
+      </section>
+
       <div className="mb-8 grid gap-3 sm:grid-cols-3">
-        <LaneCard
-          title="Score"
-          body="Upload a draft and feel predictive confidence."
-          href="/upload"
-          live
-        />
-        <LaneCard
-          title="Radar"
-          body="See what’s heating up before you create."
-          href="/trends"
-          live
-        />
-        <LaneCard
-          title="Agents"
-          body="Create, edit, and refine with AI — coming soon."
-          href="#agents"
-          live={false}
-        />
+        <Lane title="Score" body="Upload a draft. Feel the prediction." href="/upload" live />
+        <Lane title="Radar" body="What’s heating up before you create." href="/trends" live />
+        <Lane title="Agents" body="Create & refine with AI — warming up." href="#agents" live={false} />
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={<Folder className="h-5 w-5 text-champagne" />}
-          label="Projects"
-          value={dashLoading ? "—" : String(totalProjects)}
-        />
-        <StatCard
-          icon={<Upload className="h-5 w-5 text-steel" />}
-          label="Uploads"
-          value={dashLoading ? "—" : String(totalUploads)}
-        />
-        <StatCard
-          icon={
-            avgScore > 0 ? (
-              <ScoreRing score={avgScore} label="" size={40} />
-            ) : (
-              <TrendingUp className="h-5 w-5 text-[#6f9b7a]" />
-            )
-          }
-          label="Avg viability"
-          value={
-            dashLoading
-              ? "—"
-              : avgScore > 0
-                ? `${formatScore(avgScore)}%`
-                : "N/A"
-          }
-          valueClass={avgScore > 0 ? getScoreColor(avgScore) : undefined}
-        />
-        <StatCard
-          icon={<Star className="h-5 w-5 text-champagne" />}
-          label="Best score"
-          value={
-            dashLoading
-              ? "—"
-              : bestScore > 0
-                ? `${formatScore(bestScore)}%`
-                : "N/A"
-          }
-          valueClass={bestScore > 0 ? getScoreColor(bestScore) : undefined}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="space-y-8 lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent projects</CardTitle>
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.9fr)]">
+        <div className="min-w-0 space-y-10">
+          <section>
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <p className="font-display text-[10px] tracking-[0.28em] text-champagne uppercase">
+                  Library
+                </p>
+                <h3 className="font-display mt-1 text-2xl text-pearl">
+                  Recent projects
+                </h3>
+              </div>
               <Button size="sm" onClick={() => setModalOpen(true)}>
                 <Plus className="h-4 w-4" />
                 New
               </Button>
-            </CardHeader>
-            <CardContent>
-              {!projects?.length ? (
-                <div className="rounded-xl border border-dashed border-atelier py-12 text-center">
-                  <p className="text-muted-atelier">
-                    No projects yet — start a score lane.
-                  </p>
-                  <Button className="mt-4" onClick={() => setModalOpen(true)}>
-                    Create project
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {projects.slice(0, 6).map((project) => {
-                    const recentScore = dashboard?.recent_scores?.[0];
-                    return (
+            </div>
+
+            {!projects?.length ? (
+              <div className="rounded-2xl border border-dashed border-atelier px-6 py-14 text-center">
+                <p className="font-display text-lg text-pearl">Empty atelier</p>
+                <p className="mt-2 text-sm text-muted-atelier">
+                  Start a project, then score your first draft.
+                </p>
+                <Button className="mt-5" onClick={() => setModalOpen(true)}>
+                  Create project
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-[color:var(--border)] rounded-2xl border border-atelier bg-surface/60">
+                {projects.slice(0, 8).map((project, idx) => {
+                  const recentScore =
+                    dashboard?.recent_scores?.find(
+                      (s) => s.project_id === project.id,
+                    ) ??
+                    (idx === 0 ? dashboard?.recent_scores?.[0] : undefined);
+                  return (
+                    <li key={project.id}>
                       <Link
-                        key={project.id}
                         href={`/project/${project.id}`}
-                        className="group rounded-xl border border-atelier bg-canvas p-4 transition-all hover:border-champagne/35 hover:bg-surface-raised/40"
+                        className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-champagne/[0.04]"
                       >
-                        <div className="mb-2 flex items-start justify-between gap-2">
-                          <h4 className="font-medium text-pearl group-hover:text-champagne">
-                            {project.name}
-                          </h4>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-display text-base text-pearl group-hover:text-champagne">
+                              {project.name}
+                            </h4>
+                            <Badge
+                              variant={recentScore ? "success" : "default"}
+                            >
+                              {recentScore ? "Scored" : "Pending"}
+                            </Badge>
+                          </div>
+                          {project.description && (
+                            <p className="mt-1 line-clamp-1 text-sm text-muted-atelier">
+                              {project.description}
+                            </p>
+                          )}
+                          <p className="mt-1 text-[11px] text-muted-atelier">
+                            {new Date(project.created_at).toLocaleDateString()}
+                            {project.target_platform
+                              ? ` · ${project.target_platform}`
+                              : ""}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
                           {recentScore && (
                             <span
                               className={cn(
-                                "text-sm font-semibold",
+                                "font-display text-xl tabular-nums",
                                 getScoreColor(recentScore.overall_viability),
                               )}
                             >
                               {formatScore(recentScore.overall_viability)}%
                             </span>
                           )}
-                        </div>
-                        {project.description && (
-                          <p className="mb-3 line-clamp-2 text-sm text-muted-atelier">
-                            {project.description}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-atelier">
-                            {new Date(project.created_at).toLocaleDateString()}
-                          </span>
-                          <Badge variant={recentScore ? "success" : "default"}>
-                            {recentScore ? "Scored" : "Pending"}
-                          </Badge>
+                          <ArrowUpRight className="h-4 w-4 text-muted-atelier transition-colors group-hover:text-champagne" />
                         </div>
                       </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Score history</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <section>
+            <p className="font-display text-[10px] tracking-[0.28em] text-champagne uppercase">
+              Trajectory
+            </p>
+            <h3 className="font-display mt-1 mb-4 text-2xl text-pearl">
+              Score history
+            </h3>
+            <div className="rounded-2xl border border-atelier bg-surface/60 p-4 sm:p-6">
               {chartData.length < 2 ? (
-                <p className="py-12 text-center text-muted-atelier">
+                <p className="py-16 text-center text-sm text-muted-atelier">
                   History appears after you analyze a few drafts.
                 </p>
               ) : (
-                <div className="h-72">
+                <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={chartData}
-                      margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                      margin={{ top: 5, right: 12, left: 0, bottom: 5 }}
                     >
                       <defs>
                         <linearGradient
@@ -266,8 +306,16 @@ function DashboardContent() {
                           x2="0"
                           y2="1"
                         >
-                          <stop offset="5%" stopColor="#c4b8a5" stopOpacity={0.45} />
-                          <stop offset="95%" stopColor="#c4b8a5" stopOpacity={0} />
+                          <stop
+                            offset="5%"
+                            stopColor="#c4b8a5"
+                            stopOpacity={0.45}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#c4b8a5"
+                            stopOpacity={0}
+                          />
                         </linearGradient>
                       </defs>
                       <CartesianGrid
@@ -309,126 +357,59 @@ function DashboardContent() {
                   </ResponsiveContainer>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          <Card id="agents">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-champagne" />
-                Agent lane
-              </CardTitle>
+          <section id="agents" className="rounded-2xl border border-atelier bg-surface/60 p-6 sm:p-8">
+            <div className="flex flex-wrap items-center gap-3">
+              <Sparkles className="h-5 w-5 text-champagne" />
+              <h3 className="font-display text-2xl text-pearl">Agent lane</h3>
               <Badge variant="warning">Coming soon</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed text-muted-atelier">
-                Soon you&apos;ll produce, update, and edit content with AI
-                agents and MCP tools — without leaving this experience center.
-                Score and Radar stay live while Agents warm up.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {["Strategist", "Script", "Visuals", "Editor", "Publish"].map(
-                  (n) => (
-                    <span
-                      key={n}
-                      className="rounded-lg border border-atelier bg-canvas px-3 py-1.5 text-xs text-muted-atelier"
-                    >
-                      {n}
-                    </span>
-                  ),
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-atelier">
+              Soon you&apos;ll produce, update, and edit with AI agents and MCP
+              tools — without leaving this experience center.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {["Strategist", "Script", "Visuals", "Editor", "Publish"].map(
+                (n) => (
+                  <span
+                    key={n}
+                    className="rounded-lg border border-atelier px-3 py-1.5 text-xs tracking-wide text-muted-atelier"
+                  >
+                    {n}
+                  </span>
+                ),
+              )}
+            </div>
+          </section>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Flame className="h-5 w-5 text-[#b45a5a]" />
-                Hot trends
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {hotTrends.length === 0 ? (
-                <p className="text-sm text-muted-atelier">No hot trends found.</p>
-              ) : (
-                hotTrends.map((trend) => (
-                  <div
-                    key={trend.topic}
-                    className="flex items-center justify-between rounded-xl border border-atelier bg-canvas px-3 py-2.5"
-                  >
-                    <span className="text-sm font-medium text-pearl">
-                      {trend.topic}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-atelier">
-                        +{Math.round(trend.velocity)}%
-                      </span>
-                      <span
-                        className={cn(
-                          "rounded-md border px-2 py-0.5 text-[10px] font-medium",
-                          getSignalTypeColor("hot"),
-                        )}
-                      >
-                        hot
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[#6f9b7a]" />
-                Emerging
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {emergingTrends.length === 0 ? (
-                <p className="text-sm text-muted-atelier">
-                  No emerging trends found.
-                </p>
-              ) : (
-                emergingTrends.map((trend) => (
-                  <div
-                    key={trend.topic}
-                    className="flex items-center justify-between rounded-xl border border-atelier bg-canvas px-3 py-2.5"
-                  >
-                    <span className="text-sm font-medium text-pearl">
-                      {trend.topic}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-atelier">
-                        +{Math.round(trend.velocity)}%
-                      </span>
-                      <span
-                        className={cn(
-                          "rounded-md border px-2 py-0.5 text-[10px] font-medium",
-                          getSignalTypeColor("emerging"),
-                        )}
-                      >
-                        emerging
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
+        {/* Radar column — external source links */}
+        <aside className="space-y-8">
+          <TrendPanel
+            title="Hot trends"
+            eyebrow="Live radar"
+            icon={<Flame className="h-4 w-4 text-[#b45a5a]" />}
+            trends={hotTrends}
+            empty="No hot trends yet — open Radar to refresh."
+          />
+          <TrendPanel
+            title="Emerging"
+            eyebrow="Rising"
+            icon={<Sparkles className="h-4 w-4 text-[#6f9b7a]" />}
+            trends={emergingTrends}
+            empty="No emerging signals yet."
+            signalFallback="emerging"
+          />
           <Link
             href="/trends"
-            className="flex items-center justify-center gap-2 rounded-xl border border-atelier bg-surface px-4 py-3 text-sm font-medium text-pearl transition-colors hover:border-champagne/40"
+            className="flex items-center justify-between rounded-2xl border border-champagne/35 bg-champagne/10 px-5 py-4 text-sm font-medium text-pearl transition-colors hover:bg-champagne/15"
           >
             Open full radar
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4 text-champagne" />
           </Link>
-        </div>
+        </aside>
       </div>
 
       <NewProjectModal
@@ -443,7 +424,33 @@ function DashboardContent() {
   );
 }
 
-function LaneCard({
+function Metric({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="bg-surface px-4 py-5 sm:px-5">
+      <p className="text-[11px] tracking-[0.18em] text-muted-atelier uppercase">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "font-display mt-2 text-3xl tabular-nums tracking-tight",
+          valueClass ?? "text-pearl",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function Lane({
   title,
   body,
   href,
@@ -457,10 +464,12 @@ function LaneCard({
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-atelier bg-surface p-5 transition-all hover:border-champagne/35 hover:bg-surface-raised/50"
+      className="group rounded-2xl border border-atelier bg-surface/80 px-5 py-5 transition-all hover:border-champagne/40"
     >
-      <div className="flex items-center justify-between">
-        <p className="font-display text-lg text-pearl">{title}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-display text-xl text-pearl group-hover:text-champagne">
+          {title}
+        </p>
         <Badge variant={live ? "success" : "warning"}>
           {live ? "Live" : "Soon"}
         </Badge>
@@ -470,30 +479,79 @@ function LaneCard({
   );
 }
 
-function StatCard({
+function TrendPanel({
+  title,
+  eyebrow,
   icon,
-  label,
-  value,
-  valueClass,
+  trends,
+  empty,
+  signalFallback = "hot",
 }: {
+  title: string;
+  eyebrow: string;
   icon: React.ReactNode;
-  label: string;
-  value: string;
-  valueClass?: string;
+  trends: TrendSignal[];
+  empty: string;
+  signalFallback?: string;
 }) {
   return (
-    <Card>
-      <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-atelier bg-canvas">
-          {icon}
-        </div>
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        {icon}
         <div>
-          <p className="text-sm text-muted-atelier">{label}</p>
-          <p className={cn("text-2xl font-semibold", valueClass ?? "text-pearl")}>
-            {value}
+          <p className="font-display text-[10px] tracking-[0.28em] text-champagne uppercase">
+            {eyebrow}
           </p>
+          <h3 className="font-display text-xl text-pearl">{title}</h3>
         </div>
       </div>
-    </Card>
+      {trends.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-atelier px-4 py-8 text-center text-sm text-muted-atelier">
+          {empty}
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {trends.map((trend) => {
+            const href = getTrendSourceUrl(trend);
+            const label = getTrendSourceLabel(trend);
+            return (
+              <li key={`${trend.topic}-${trend.region}-${trend.source}`}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={label}
+                  className="group flex items-start gap-3 rounded-xl border border-atelier bg-surface/70 px-3.5 py-3 transition-all hover:border-champagne/40 hover:bg-champagne/[0.06]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-snug text-pearl group-hover:text-champagne">
+                      {trend.topic}
+                    </p>
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-atelier">
+                      <span className="inline-flex items-center gap-1 text-champagne/90">
+                        <ExternalLink className="h-3 w-3" />
+                        {label.replace("Open on ", "")}
+                      </span>
+                      {trend.region ? <span>· {trend.region}</span> : null}
+                      <span>· +{Math.round(trend.velocity)}%</span>
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "mt-0.5 shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-medium",
+                      getSignalTypeColor(
+                        trend.signal_type || signalFallback,
+                      ),
+                    )}
+                  >
+                    {trend.signal_type || signalFallback}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

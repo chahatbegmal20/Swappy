@@ -17,10 +17,10 @@ import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const appLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/upload", label: "Upload", icon: Upload },
-  { href: "/trends", label: "Trends", icon: TrendingUp },
-  { href: "/settings", label: "Settings", icon: User },
+  { href: "/dashboard", label: "Command", icon: BarChart3 },
+  { href: "/upload", label: "Score", icon: Upload },
+  { href: "/trends", label: "Radar", icon: TrendingUp },
+  { href: "/settings", label: "Atelier", icon: User },
 ];
 
 const marketingLinks = [

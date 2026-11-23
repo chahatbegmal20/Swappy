@@ -59,6 +59,7 @@ export interface Upload {
 
 export interface Score {
   id: string;
+  project_id?: string;
   model_version: string;
   trend_alignment: number;
   virality_probability: number;

@@ -11,11 +11,16 @@ import {
   Globe,
   Flame,
   RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 import { api } from "@/lib/api";
 import { cn, getSignalTypeColor } from "@/lib/utils";
+import {
+  getTrendSourceLabel,
+  getTrendSourceUrl,
+} from "@/lib/trend-links";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -310,18 +315,35 @@ export default function TrendsExplorerPage() {
             const velocity = trend.velocity;
             const isGoogle = source === "google_trends";
 
+            const sourceUrl = getTrendSourceUrl(trend);
+            const sourceLabel = getTrendSourceLabel(trend);
+
             return (
-              <Link
+              <div
                 key={`${trend.topic}-${region || ""}-${source || ""}`}
-                href={`/trends/${encodeURIComponent(trend.topic)}`}
-                className="group"
+                className="group relative"
               >
                 <Card className="h-full border-atelier bg-surface transition-all hover:border-champagne/35 hover:bg-surface-raised/50">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-pearl group-hover:text-champagne">
-                      {trend.topic}
-                    </h3>
-                    <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-atelier transition-colors group-hover:text-champagne" />
+                    <Link
+                      href={`/trends/${encodeURIComponent(trend.topic)}`}
+                      className="min-w-0 flex-1"
+                    >
+                      <h3 className="text-lg font-semibold text-pearl group-hover:text-champagne">
+                        {trend.topic}
+                      </h3>
+                    </Link>
+                    <a
+                      href={sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={sourceLabel}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-atelier px-2 py-1 text-[11px] text-muted-atelier transition-colors hover:border-champagne/40 hover:text-champagne"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Source
+                    </a>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -375,15 +397,26 @@ export default function TrendsExplorerPage() {
                     </div>
                   )}
 
-                  {capturedAt && (
-                    <p className="mt-3 text-[11px] text-muted-atelier">
-                      {formatDistanceToNow(new Date(capturedAt), {
-                        addSuffix: true,
-                      })}
-                    </p>
-                  )}
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    {capturedAt ? (
+                      <p className="text-[11px] text-muted-atelier">
+                        {formatDistanceToNow(new Date(capturedAt), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    ) : (
+                      <span />
+                    )}
+                    <Link
+                      href={`/trends/${encodeURIComponent(trend.topic)}`}
+                      className="inline-flex items-center gap-1 text-[11px] text-champagne hover:text-champagne-bright"
+                    >
+                      Details
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
                 </Card>
-              </Link>
+              </div>
             );
           })}
         </div>
