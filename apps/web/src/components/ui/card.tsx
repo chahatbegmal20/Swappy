@@ -9,7 +9,7 @@ export function Card({ children, className, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900",
+        "rounded-2xl border border-atelier bg-surface p-6",
         className,
       )}
       {...props}
@@ -19,26 +19,21 @@ export function Card({ children, className, ...props }: CardProps) {
   );
 }
 
-export function CardHeader({
-  children,
-  className,
-  ...props
-}: CardProps) {
+export function CardHeader({ children, className, ...props }: CardProps) {
   return (
-    <div className={cn("mb-4 flex items-center justify-between", className)} {...props}>
+    <div
+      className={cn("mb-4 flex items-center justify-between gap-3", className)}
+      {...props}
+    >
       {children}
     </div>
   );
 }
 
-export function CardTitle({
-  children,
-  className,
-  ...props
-}: CardProps) {
+export function CardTitle({ children, className, ...props }: CardProps) {
   return (
     <h3
-      className={cn("text-lg font-semibold text-gray-900 dark:text-white", className)}
+      className={cn("font-display text-lg font-semibold text-pearl", className)}
       {...props}
     >
       {children}
@@ -46,11 +41,7 @@ export function CardTitle({
   );
 }
 
-export function CardContent({
-  children,
-  className,
-  ...props
-}: CardProps) {
+export function CardContent({ children, className, ...props }: CardProps) {
   return (
     <div className={cn(className)} {...props}>
       {children}
@@ -58,15 +49,11 @@ export function CardContent({
   );
 }
 
-export function CardFooter({
-  children,
-  className,
-  ...props
-}: CardProps) {
+export function CardFooter({ children, className, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "mt-4 flex items-center border-t border-gray-200 pt-4 dark:border-gray-800",
+        "mt-4 flex items-center border-t border-atelier pt-4",
         className,
       )}
       {...props}

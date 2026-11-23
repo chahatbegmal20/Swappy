@@ -48,6 +48,18 @@ body {
     color: var(--champagne);
   }
 
+  .text-champagne-bright {
+    color: var(--champagne-bright);
+  }
+
+  .text-canvas {
+    color: var(--canvas);
+  }
+
+  .text-steel {
+    color: var(--steel);
+  }
+
   .bg-canvas {
     background-color: var(--canvas);
   }
