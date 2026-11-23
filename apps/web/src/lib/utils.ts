@@ -29,9 +29,9 @@ export function getSignalTypeColor(type: string): string {
     emerging: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
     stable: "bg-blue-500/10 text-blue-500 border-blue-500/20",
     saturated: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    declining: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    declining: "bg-muted-atelier/10 text-muted-atelier border-atelier",
     "niche but promising":
-      "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      "bg-steel/10 text-steel border-steel/25",
   };
-  return colors[type] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
+  return colors[type] || "bg-muted-atelier/10 text-muted-atelier border-atelier";
 }

@@ -580,7 +580,7 @@ function UploadContent() {
                       className={cn(
                         "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                         moods.includes(m)
-                          ? "border-purple-500 bg-purple-600/20 text-purple-400"
+                          ? "border-steel bg-steel/20 text-steel"
                           : "border-atelier bg-surface-raised text-muted-atelier hover:border-atelier",
                       )}
                     >
@@ -746,7 +746,7 @@ function FileTypeIcon({ type }: { type: string }) {
   if (type.startsWith("video/"))
     return <Film className="h-5 w-5 shrink-0 text-blue-400" />;
   if (type.startsWith("audio/"))
-    return <Music className="h-5 w-5 shrink-0 text-purple-400" />;
+    return <Music className="h-5 w-5 shrink-0 text-steel" />;
   if (type.startsWith("image/"))
     return <ImageIcon className="h-5 w-5 shrink-0 text-emerald-400" />;
   return <File className="h-5 w-5 shrink-0 text-muted-atelier" />;

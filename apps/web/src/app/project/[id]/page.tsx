@@ -62,7 +62,7 @@ const SCORE_DETAILS: ScoreDetail[] = [
 
 const EXPLANATION_SECTIONS = [
   { key: "trend_factors", label: "Trend Factors", icon: <TrendingUp className="h-5 w-5 text-champagne" /> },
-  { key: "audience_factors", label: "Audience Factors", icon: <Users className="h-5 w-5 text-cyan-400" /> },
+  { key: "audience_factors", label: "Audience Factors", icon: <Users className="h-5 w-5 text-steel" /> },
   { key: "content_factors", label: "Content Factors", icon: <FileText className="h-5 w-5 text-emerald-400" /> },
   { key: "timing_factors", label: "Timing Factors", icon: <Clock className="h-5 w-5 text-amber-400" /> },
 ];
@@ -306,7 +306,7 @@ function ProjectScorecardContent() {
                                 <ul className="space-y-2">
                                   {factors.map((factor, i) => (
                                     <li key={i} className="flex items-start gap-2 text-sm text-pearl">
-                                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
+                                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-champagne" />
                                       {factor}
                                     </li>
                                   ))}
@@ -360,7 +360,7 @@ function ProjectScorecardContent() {
                         <Card className="border-atelier bg-surface">
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
-                              <Users className="h-5 w-5 text-cyan-400" />
+                              <Users className="h-5 w-5 text-steel" />
                               Target Audiences
                             </CardTitle>
                           </CardHeader>
@@ -368,7 +368,7 @@ function ProjectScorecardContent() {
                             <ul className="space-y-2">
                               {recommendations.target_audiences.map((item, i) => (
                                 <li key={i} className="flex items-start gap-2 text-sm text-pearl">
-                                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-500" />
+                                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-steel" />
                                   {item}
                                 </li>
                               ))}
@@ -388,7 +388,7 @@ function ProjectScorecardContent() {
                             <ul className="space-y-2">
                               {recommendations.best_platforms.map((item, i) => (
                                 <li key={i} className="flex items-start gap-2 text-sm text-pearl">
-                                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
+                                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-champagne" />
                                   {item}
                                 </li>
                               ))}
@@ -432,7 +432,7 @@ function ProjectScorecardContent() {
                     <h2 className="mb-4 text-xl font-semibold">Best Publishing Window</h2>
                     <Card className="border-atelier bg-surface">
                       <div className="flex items-center gap-6">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-indigo-500/10">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-champagne/10">
                           <CalendarClock className="h-8 w-8 text-champagne" />
                         </div>
                         <div>
@@ -524,7 +524,7 @@ function ProjectScorecardContent() {
             {!score && !scoreLoading && (
               <Card className="border-atelier bg-surface">
                 <div className="flex flex-col items-center gap-4 py-16">
-                  <BarChart3 className="h-12 w-12 text-gray-600" />
+                  <BarChart3 className="h-12 w-12 text-muted-atelier" />
                   <h3 className="text-lg font-semibold text-muted-atelier">No Score Yet</h3>
                   <p className="text-sm text-muted-atelier">
                     Upload your content and run an analysis to get your scorecard.

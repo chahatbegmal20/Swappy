@@ -66,7 +66,7 @@ export function Dropzone({ onFilesAdded }: DropzoneProps) {
       className={cn(
         "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-16 transition-colors",
         dragging
-          ? "border-champagne bg-indigo-500/10"
+          ? "border-champagne bg-champagne/10"
           : "border-atelier bg-canvas hover:border-atelier hover:bg-surface/50",
       )}
     >

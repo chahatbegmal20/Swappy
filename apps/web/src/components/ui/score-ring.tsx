@@ -33,7 +33,7 @@ export function ScoreRing({ score, label, size = 120 }: ScoreRingProps) {
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-gray-200 dark:text-gray-700"
+          className="text-pearl text-muted-atelier"
         />
         <circle
           cx={center}
@@ -56,7 +56,7 @@ export function ScoreRing({ score, label, size = 120 }: ScoreRingProps) {
           {formatScore(score)}
         </span>
       </div>
-      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+      <span className="text-xs font-medium text-muted-atelier dark:text-muted-atelier">
         {label}
       </span>
     </div>

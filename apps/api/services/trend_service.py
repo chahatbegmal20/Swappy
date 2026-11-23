@@ -17,6 +17,7 @@ async def get_trends(
     category: Optional[str] = None,
     region: Optional[str] = None,
     signal_type: Optional[str] = None,
+    source: Optional[str] = None,
     limit: int = 50,
 ) -> list[TrendSignal]:
     filters: dict = {}
@@ -26,6 +27,8 @@ async def get_trends(
         filters["region"] = re.compile(f"^{re.escape(region)}$", re.IGNORECASE)
     if signal_type:
         filters["signal_type"] = re.compile(f"^{re.escape(signal_type)}$", re.IGNORECASE)
+    if source:
+        filters["source"] = re.compile(f"^{re.escape(source)}$", re.IGNORECASE)
 
     query = TrendSignal.find(filters) if filters else TrendSignal.find_all()
     return await query.sort(-TrendSignal.velocity).limit(limit).to_list()

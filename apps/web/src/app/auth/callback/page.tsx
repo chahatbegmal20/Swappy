@@ -68,8 +68,8 @@ function CallbackHandler() {
         <div className="glass rounded-2xl p-8">
           {status === "loading" && (
             <>
-              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-600 border-t-indigo-500" />
-              <p className="text-gray-300">{message}</p>
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-atelier border-t-champagne" />
+              <p className="text-pearl">{message}</p>
             </>
           )}
 
@@ -97,7 +97,7 @@ function CallbackHandler() {
                   if (window.opener) window.close();
                   else router.push("/auth/login");
                 }}
-                className="mt-4 text-sm text-indigo-400 hover:text-indigo-300"
+                className="mt-4 text-sm text-champagne hover:text-champagne-bright"
               >
                 Back to login
               </button>
@@ -114,7 +114,7 @@ export default function AuthCallbackPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-600 border-t-indigo-500" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-atelier border-t-champagne" />
         </div>
       }
     >

@@ -184,7 +184,7 @@ export function SocialAuth() {
                   </span>
                 )}
                 {loading === id && (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-white" />
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-atelier border-t-pearl" />
                 )}
                 {loading === id && (
                   <span className="text-[10px] text-muted-atelier">Redirecting…</span>

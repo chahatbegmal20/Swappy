@@ -34,6 +34,7 @@ import { api } from "@/lib/api";
 import { cn, getSignalTypeColor } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StudioShell } from "@/components/studio/studio-shell";
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -91,23 +92,26 @@ export default function TrendDetailPage() {
   const hasEstimatedHistory = dataPoints.some((p) => p.estimated);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <StudioShell
+      title={detail?.topic || "Topic"}
+      subtitle="Signal detail, trajectory, and related coverage."
+      actions={
         <Link
           href="/trends"
-          className="mb-6 inline-flex items-center gap-1 text-sm text-gray-400 transition-colors hover:text-white"
+          className="inline-flex items-center gap-1 text-sm text-muted-atelier transition-colors hover:text-champagne"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Trends
+          Back to Radar
         </Link>
-
+      }
+    >
         {isLoading ? (
           <div className="flex items-center justify-center py-32">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-indigo-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-atelier border-t-champagne" />
           </div>
         ) : !detail ? (
-          <Card className="border-gray-800 bg-gray-900">
-            <div className="py-16 text-center text-gray-500">
+          <Card className="border-atelier bg-surface">
+            <div className="py-16 text-center text-muted-atelier">
               <p className="text-lg font-medium">Trend not found</p>
               <p className="mt-1 text-sm">Try refreshing live trends, then open this topic again.</p>
             </div>
@@ -130,7 +134,7 @@ export default function TrendDetailPage() {
                   <Badge variant="default">{detail.source}</Badge>
                   {detail.region && <Badge variant="default">{detail.region}</Badge>}
                 </div>
-                <p className="mt-2 text-sm text-gray-500">
+                <p className="mt-2 text-sm text-muted-atelier">
                   Captured{" "}
                   {formatDistanceToNow(new Date(detail.captured_at), { addSuffix: true })}
                 </p>
@@ -140,7 +144,7 @@ export default function TrendDetailPage() {
             {/* Core prediction metrics */}
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <MetricCard
-                icon={<Activity className="h-5 w-5 text-indigo-400" />}
+                icon={<Activity className="h-5 w-5 text-champagne" />}
                 label="Current Velocity"
                 value={`${Math.round(detail.velocity)}%`}
                 change={velocityChange !== 0 ? velocityChange : undefined}
@@ -152,7 +156,7 @@ export default function TrendDetailPage() {
                 hint="Predicted 0–100"
               />
               <MetricCard
-                icon={<Eye className="h-5 w-5 text-cyan-400" />}
+                icon={<Eye className="h-5 w-5 text-steel" />}
                 label="Views / Interest"
                 value={formatCount(engagement?.views ?? detail.volume)}
               />
@@ -164,14 +168,14 @@ export default function TrendDetailPage() {
             </div>
 
             {/* Engagement breakdown */}
-            <Card className="mb-8 border-gray-800 bg-gray-900">
+            <Card className="mb-8 border-atelier bg-surface">
               <CardHeader>
                 <CardTitle>Audience engagement</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
                   <EngagementStat
-                    icon={<Eye className="h-4 w-4 text-cyan-400" />}
+                    icon={<Eye className="h-4 w-4 text-steel" />}
                     label="Views"
                     value={formatCount(engagement?.views ?? 0)}
                   />
@@ -197,7 +201,7 @@ export default function TrendDetailPage() {
                   />
                 </div>
                 {engagement?.metrics_note && (
-                  <p className="mt-4 text-xs text-gray-500">{engagement.metrics_note}</p>
+                  <p className="mt-4 text-xs text-muted-atelier">{engagement.metrics_note}</p>
                 )}
               </CardContent>
             </Card>
@@ -205,10 +209,10 @@ export default function TrendDetailPage() {
             {/* Charts */}
             {chartData.length > 1 ? (
               <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card className="border-gray-800 bg-gray-900">
+                <Card className="border-atelier bg-surface">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-indigo-400" />
+                      <TrendingUp className="h-5 w-5 text-champagne" />
                       Velocity over time
                     </CardTitle>
                   </CardHeader>
@@ -262,7 +266,7 @@ export default function TrendDetailPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-gray-800 bg-gray-900">
+                <Card className="border-atelier bg-surface">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5 text-emerald-400" />
@@ -310,8 +314,8 @@ export default function TrendDetailPage() {
                 </Card>
               </div>
             ) : (
-              <Card className="mb-8 border-gray-800 bg-gray-900">
-                <div className="flex flex-col items-center py-16 text-gray-500">
+              <Card className="mb-8 border-atelier bg-surface">
+                <div className="flex flex-col items-center py-16 text-muted-atelier">
                   <Activity className="mb-3 h-10 w-10" />
                   <p className="text-lg font-medium">Not enough history yet</p>
                   <p className="mt-1 text-sm">
@@ -325,7 +329,7 @@ export default function TrendDetailPage() {
             {detail.related_news?.length > 0 && (
               <div className="mb-8">
                 <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
-                  <Newspaper className="h-5 w-5 text-indigo-400" />
+                  <Newspaper className="h-5 w-5 text-champagne" />
                   Related coverage
                 </h2>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -337,10 +341,10 @@ export default function TrendDetailPage() {
                       rel="noreferrer"
                       className="block"
                     >
-                      <Card className="border-gray-800 bg-gray-900 transition-colors hover:border-gray-700">
-                        <p className="font-medium text-white">{news.title}</p>
+                      <Card className="border-atelier bg-surface transition-colors hover:border-atelier">
+                        <p className="font-medium text-pearl">{news.title}</p>
                         {news.url && (
-                          <p className="mt-1 truncate text-xs text-indigo-400">{news.url}</p>
+                          <p className="mt-1 truncate text-xs text-champagne">{news.url}</p>
                         )}
                       </Card>
                     </a>
@@ -361,10 +365,10 @@ export default function TrendDetailPage() {
                       href={`/trends/${encodeURIComponent(trend.topic)}`}
                       className="group"
                     >
-                      <Card className="border-gray-800 bg-gray-900 transition-all hover:border-gray-700 hover:bg-gray-800/50">
+                      <Card className="border-atelier bg-surface transition-all hover:border-atelier hover:bg-surface-raised/50">
                         <div className="flex items-center justify-between">
                           <div className="min-w-0">
-                            <h4 className="truncate font-medium text-white group-hover:text-indigo-400">
+                            <h4 className="truncate font-medium text-pearl group-hover:text-champagne">
                               {trend.topic}
                             </h4>
                             <div className="mt-1 flex items-center gap-2">
@@ -377,7 +381,7 @@ export default function TrendDetailPage() {
                                 {trend.signal_type}
                               </span>
                               {trend.trend_score != null && (
-                                <span className="text-[10px] text-gray-500">
+                                <span className="text-[10px] text-muted-atelier">
                                   score {Math.round(trend.trend_score)}
                                 </span>
                               )}
@@ -408,8 +412,7 @@ export default function TrendDetailPage() {
             )}
           </>
         )}
-      </div>
-    </div>
+    </StudioShell>
   );
 }
 
@@ -423,12 +426,12 @@ function EngagementStat({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
-      <div className="mb-2 flex items-center gap-2 text-gray-400">
+    <div className="rounded-lg border border-atelier bg-canvas/60 p-3">
+      <div className="mb-2 flex items-center gap-2 text-muted-atelier">
         {icon}
         <span className="text-xs">{label}</span>
       </div>
-      <p className="text-xl font-bold text-white">{value}</p>
+      <p className="text-xl font-bold text-pearl">{value}</p>
     </div>
   );
 }
@@ -447,15 +450,15 @@ function MetricCard({
   hint?: string;
 }) {
   return (
-    <Card className="border-gray-800 bg-gray-900">
+    <Card className="border-atelier bg-surface">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-800">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-raised">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-xs text-gray-500">{label}</p>
+          <p className="truncate text-xs text-muted-atelier">{label}</p>
           <div className="flex items-center gap-2">
-            <p className="text-lg font-bold text-white">{value}</p>
+            <p className="text-lg font-bold text-pearl">{value}</p>
             {change !== undefined && (
               <span
                 className={cn(
@@ -473,7 +476,7 @@ function MetricCard({
               </span>
             )}
           </div>
-          {hint && <p className="text-[10px] text-gray-600">{hint}</p>}
+          {hint && <p className="text-[10px] text-muted-atelier">{hint}</p>}
         </div>
       </div>
     </Card>

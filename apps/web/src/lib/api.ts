@@ -392,12 +392,14 @@ class ApiClient {
     category?: string;
     region?: string;
     signal_type?: string;
+    source?: string;
     limit?: number;
   }): Promise<TrendSignal[]> {
     const query = new URLSearchParams();
     if (params?.category) query.set("category", params.category);
     if (params?.region) query.set("region", params.region);
     if (params?.signal_type) query.set("signal_type", params.signal_type);
+    if (params?.source) query.set("source", params.source);
     if (params?.limit) query.set("limit", String(params.limit));
     const qs = query.toString();
     return this.request(`/api/v1/trends/${qs ? `?${qs}` : ""}`);

@@ -29,10 +29,17 @@ async def list_trends(
     category: Optional[str] = Query(None),
     region: Optional[str] = Query(None),
     signal_type: Optional[str] = Query(None),
+    source: Optional[str] = Query(
+        None, description="Filter by source, e.g. google_trends"
+    ),
     limit: int = Query(50, ge=1, le=200),
 ):
     trends = await get_trends(
-        category=category, region=region, signal_type=signal_type, limit=limit
+        category=category,
+        region=region,
+        signal_type=signal_type,
+        source=source,
+        limit=limit,
     )
     return [_to_trend_response(t) for t in trends]
 

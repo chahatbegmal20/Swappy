@@ -132,44 +132,74 @@ def _guess_category(topic: str) -> str:
 
 
 class GoogleTrendsSource:
-    """Live Google Trends via the public daily trending RSS feed (no API key)."""
+    """Live Google Trends via public RSS feeds (no API key)."""
 
-    RSS_URL = "https://trends.google.com/trending/rss?geo={geo}"
+    # Live /trending/rss is the working public feed (daily RSS currently 404s).
+    RSS_URLS = (
+        "https://trends.google.com/trending/rss?geo={geo}",
+        "https://trends.google.com/trends/trendingsearches/daily/rss?geo={geo}",
+    )
 
     def fetch_trending(self, region: str = "US") -> list[dict[str, Any]]:
         geo = (region or "US").upper()
-        url = self.RSS_URL.format(geo=quote_plus(geo))
+        # GB geo code on classic feed is GB; keep as-is.
+        if geo == "UK":
+            geo = "GB"
+
+        for template in self.RSS_URLS:
+            url = template.format(geo=quote_plus(geo))
+            signals = self._fetch_rss(url=url, geo=geo)
+            if signals:
+                return signals
+        return []
+
+    def _fetch_rss(self, *, url: str, geo: str) -> list[dict[str, Any]]:
         try:
             resp = requests.get(
                 url,
-                timeout=12,
+                timeout=15,
                 headers={
-                    "User-Agent": "SwappyBot/1.0 (+https://localhost; trend-ingestion)",
+                    "User-Agent": (
+                        "Mozilla/5.0 (compatible; SwappyStudio/1.0; "
+                        "+https://www.swappystudio.com)"
+                    ),
                     "Accept": "application/rss+xml, application/xml, text/xml, */*",
                 },
             )
             if resp.status_code != 200 or not resp.text.strip():
-                logger.warning("Google Trends RSS HTTP %s for geo=%s", resp.status_code, geo)
+                logger.warning(
+                    "Google Trends RSS HTTP %s for geo=%s url=%s",
+                    resp.status_code,
+                    geo,
+                    url,
+                )
                 return []
 
             root = ET.fromstring(resp.content)
             channel = root.find("channel")
             if channel is None:
-                return []
+                # Some feeds nest channel differently / Atom-ish
+                channel = root.find("atom:feed", _ATOM) or root
+            items = channel.findall("item")
+            if not items:
+                items = channel.findall("atom:entry", _ATOM)
 
             now = datetime.now(timezone.utc)
             signals: list[dict[str, Any]] = []
-            for rank, item in enumerate(channel.findall("item"), start=1):
+            for rank, item in enumerate(items, start=1):
                 title_el = item.find("title")
+                if title_el is None:
+                    title_el = item.find("atom:title", _ATOM)
                 topic = (title_el.text or "").strip() if title_el is not None else ""
                 if not topic:
                     continue
 
                 traffic_el = item.find("ht:approx_traffic", _HT)
-                traffic_raw = (traffic_el.text or "").strip() if traffic_el is not None else ""
+                traffic_raw = (
+                    (traffic_el.text or "").strip() if traffic_el is not None else ""
+                )
                 volume = self._parse_traffic(traffic_raw)
-                # Higher rank + higher traffic => hotter
-                velocity = max(35.0, 100.0 - (rank - 1) * 2.5)
+                velocity = max(35.0, 100.0 - (rank - 1) * 2.2)
                 if volume >= 200_000:
                     signal_type = "hot"
                 elif volume >= 50_000:
@@ -179,32 +209,47 @@ class GoogleTrendsSource:
 
                 news_items = []
                 for news in item.findall("ht:news_item", _HT)[:3]:
-                    news_title = news.findtext("ht:news_item_title", default="", namespaces=_HT)
-                    news_url = news.findtext("ht:news_item_url", default="", namespaces=_HT)
+                    news_title = news.findtext(
+                        "ht:news_item_title", default="", namespaces=_HT
+                    )
+                    news_url = news.findtext(
+                        "ht:news_item_url", default="", namespaces=_HT
+                    )
                     if news_title:
                         news_items.append({"title": news_title, "url": news_url})
 
-                signals.append({
-                    "source": "google_trends",
-                    "category": _guess_category(topic),
-                    "topic": topic,
-                    "region": geo,
-                    "signal_type": signal_type,
-                    "velocity": round(velocity, 2),
-                    "volume": float(volume),
-                    "raw_data": {
-                        "source_api": "google_trends_rss",
-                        "approx_traffic": traffic_raw or str(volume),
-                        "rank": rank,
-                        "news": news_items,
-                        "rss_url": url,
-                    },
-                    "captured_at": now.isoformat(),
-                })
-            logger.info("Google Trends RSS: %s topics for geo=%s", len(signals), geo)
+                signals.append(
+                    {
+                        "source": "google_trends",
+                        "category": _guess_category(topic),
+                        "topic": topic,
+                        "region": geo,
+                        "signal_type": signal_type,
+                        "velocity": round(velocity, 2),
+                        "volume": float(volume),
+                        "raw_data": {
+                            "source_api": "google_trends_rss",
+                            "approx_traffic": traffic_raw or str(volume),
+                            "rank": rank,
+                            "news": news_items,
+                            "rss_url": url,
+                            "google_trends_url": (
+                                "https://trends.google.com/trends/explore"
+                                f"?q={quote_plus(topic)}&geo={quote_plus(geo)}"
+                            ),
+                        },
+                        "captured_at": now.isoformat(),
+                    }
+                )
+            logger.info(
+                "Google Trends RSS: %s topics for geo=%s from %s",
+                len(signals),
+                geo,
+                url,
+            )
             return signals
         except Exception as e:
-            logger.warning("Google Trends RSS fetch failed: %s", e)
+            logger.warning("Google Trends RSS fetch failed (%s): %s", url, e)
             return []
 
     @staticmethod
@@ -239,12 +284,18 @@ def fetch_all_live_trends(
     include_hn: bool = True,
 ) -> list[dict[str, Any]]:
     """Aggregate live trends from Google RSS + Reddit + Hacker News."""
-    regions = regions or ["US", "GB", "IN", "AU"]
+    regions = regions or ["US", "GB", "IN", "AU", "CA", "DE", "JP", "BR"]
     combined: list[dict[str, Any]] = []
+    seen_topics: set[str] = set()
 
     google = GoogleTrendsSource()
     for geo in regions:
-        combined.extend(google.fetch_trending(region=geo))
+        for signal in google.fetch_trending(region=geo):
+            key = signal["topic"].strip().lower()
+            if key in seen_topics:
+                continue
+            seen_topics.add(key)
+            combined.append(signal)
 
     if include_hn:
         combined.extend(HackerNewsSource().fetch_trending(count=15))
