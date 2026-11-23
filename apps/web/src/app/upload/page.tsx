@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AuthGuard } from "@/components/auth-guard";
+import { StudioShell } from "@/components/studio/studio-shell";
 import { Dropzone } from "./dropzone";
 
 const PLATFORMS = ["YouTube", "TikTok", "Instagram", "Twitter", "Multiple"];
@@ -235,16 +236,10 @@ function UploadContent() {
   const canProceedStep2 = files.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Upload Content</h1>
-          <p className="mt-1 text-gray-400">
-            Upload, tag, and analyze your content
-          </p>
-        </div>
-
+    <StudioShell
+      title="Score"
+      subtitle="Upload, tag, and analyze — feel predictive confidence before you publish."
+    >
         {/* Stepper */}
         <div className="mb-10 flex items-center justify-center gap-2">
           {STEPS.map((s, i) => (
@@ -256,10 +251,10 @@ function UploadContent() {
                 className={cn(
                   "flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors",
                   step === s.number
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-champagne text-canvas"
                     : step > s.number
-                      ? "bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30"
-                      : "bg-gray-800 text-gray-500",
+                      ? "bg-champagne/20 text-champagne hover:bg-champagne/30"
+                      : "bg-surface-raised text-muted-atelier",
                 )}
               >
                 {step > s.number ? (
@@ -270,7 +265,7 @@ function UploadContent() {
                 <span className="hidden sm:inline">{s.label}</span>
               </button>
               {i < STEPS.length - 1 && (
-                <ChevronRight className="h-4 w-4 text-gray-600" />
+                <ChevronRight className="h-4 w-4 text-muted-atelier" />
               )}
             </div>
           ))}
@@ -278,7 +273,7 @@ function UploadContent() {
 
         {/* Step 1: Select / Create Project */}
         {step === 1 && (
-          <Card className="border-gray-800 bg-gray-900">
+          <Card className="border-atelier bg-surface">
             <CardHeader>
               <CardTitle>Select or Create a Project</CardTitle>
             </CardHeader>
@@ -286,11 +281,11 @@ function UploadContent() {
               {!creatingNew ? (
                 <>
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-medium text-gray-300">
+                    <label className="block text-sm font-medium text-pearl">
                       Choose Project
                     </label>
                     <select
-                      className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
                       value={selectedProject}
                       onChange={(e) => setSelectedProject(e.target.value)}
                     >
@@ -304,16 +299,16 @@ function UploadContent() {
                   </div>
 
                   {selectedProjectData && (
-                    <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-                      <p className="font-medium text-white">
+                    <div className="rounded-lg border border-atelier bg-canvas p-4">
+                      <p className="font-medium text-pearl">
                         {selectedProjectData.name}
                       </p>
                       {selectedProjectData.description && (
-                        <p className="mt-1 text-sm text-gray-400">
+                        <p className="mt-1 text-sm text-muted-atelier">
                           {selectedProjectData.description}
                         </p>
                       )}
-                      <p className="mt-2 text-xs text-gray-500">
+                      <p className="mt-2 text-xs text-muted-atelier">
                         Created{" "}
                         {new Date(
                           selectedProjectData.created_at,
@@ -323,9 +318,9 @@ function UploadContent() {
                   )}
 
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-gray-800" />
-                    <span className="text-xs text-gray-500">or</span>
-                    <div className="h-px flex-1 bg-gray-800" />
+                    <div className="h-px flex-1 bg-surface-raised" />
+                    <span className="text-xs text-muted-atelier">or</span>
+                    <div className="h-px flex-1 bg-surface-raised" />
                   </div>
 
                   <Button
@@ -346,11 +341,11 @@ function UploadContent() {
                     onChange={(e) => setNewProjectName(e.target.value)}
                   />
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-medium text-gray-300">
+                    <label className="block text-sm font-medium text-pearl">
                       Description (optional)
                     </label>
                     <textarea
-                      className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl placeholder:text-muted-atelier focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
                       rows={2}
                       placeholder="Describe your project..."
                       value={newProjectDesc}
@@ -390,7 +385,7 @@ function UploadContent() {
 
         {/* Step 2: Upload Content */}
         {step === 2 && (
-          <Card className="border-gray-800 bg-gray-900">
+          <Card className="border-atelier bg-surface">
             <CardHeader>
               <CardTitle>Upload Content Files</CardTitle>
             </CardHeader>
@@ -399,27 +394,27 @@ function UploadContent() {
 
               {files.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-300">
+                  <p className="text-sm font-medium text-pearl">
                     {files.length} file{files.length !== 1 && "s"} selected
                   </p>
                   <div className="max-h-60 space-y-2 overflow-y-auto">
                     {files.map((f) => (
                       <div
                         key={f.id}
-                        className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-950 px-4 py-3"
+                        className="flex items-center gap-3 rounded-lg border border-atelier bg-canvas px-4 py-3"
                       >
                         <FileTypeIcon type={f.type} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-gray-200">
+                          <p className="truncate text-sm font-medium text-pearl">
                             {f.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-atelier">
                             {formatFileSize(f.size)}
                           </p>
                         </div>
                         <button
                           onClick={() => removeFile(f.id)}
-                          className="rounded p-1 text-gray-500 hover:bg-gray-800 hover:text-red-400"
+                          className="rounded p-1 text-muted-atelier hover:bg-surface-raised hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -462,7 +457,7 @@ function UploadContent() {
 
         {/* Step 3: Add Metadata */}
         {step === 3 && (
-          <Card className="border-gray-800 bg-gray-900">
+          <Card className="border-atelier bg-surface">
             <CardHeader>
               <CardTitle>Add Metadata</CardTitle>
             </CardHeader>
@@ -475,11 +470,11 @@ function UploadContent() {
               />
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-pearl">
                   Description
                 </label>
                 <textarea
-                  className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl placeholder:text-muted-atelier focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
                   rows={3}
                   placeholder="Describe your content..."
                   value={description}
@@ -489,7 +484,7 @@ function UploadContent() {
 
               {/* Hashtags */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-pearl">
                   Hashtags
                 </label>
                 <div className="flex gap-2">
@@ -518,14 +513,14 @@ function UploadContent() {
                     {hashtags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-1 rounded-full bg-indigo-600/20 px-3 py-1 text-xs font-medium text-indigo-400"
+                        className="inline-flex items-center gap-1 rounded-full bg-champagne/20 px-3 py-1 text-xs font-medium text-champagne"
                       >
                         #{tag}
                         <button
                           onClick={() =>
                             setHashtags(hashtags.filter((t) => t !== tag))
                           }
-                          className="ml-0.5 hover:text-white"
+                          className="ml-0.5 hover:text-pearl"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -537,7 +532,7 @@ function UploadContent() {
 
               {/* Genre Tags */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-pearl">
                   Genre
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -555,8 +550,8 @@ function UploadContent() {
                       className={cn(
                         "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                         genres.includes(g)
-                          ? "border-indigo-500 bg-indigo-600/20 text-indigo-400"
-                          : "border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600",
+                          ? "border-champagne bg-champagne/20 text-champagne"
+                          : "border-atelier bg-surface-raised text-muted-atelier hover:border-atelier",
                       )}
                     >
                       {g}
@@ -567,7 +562,7 @@ function UploadContent() {
 
               {/* Mood Tags */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-pearl">
                   Mood
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -586,7 +581,7 @@ function UploadContent() {
                         "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                         moods.includes(m)
                           ? "border-purple-500 bg-purple-600/20 text-purple-400"
-                          : "border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600",
+                          : "border-atelier bg-surface-raised text-muted-atelier hover:border-atelier",
                       )}
                     >
                       {m}
@@ -598,11 +593,11 @@ function UploadContent() {
               {/* Selects row */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-gray-300">
+                  <label className="block text-sm font-medium text-pearl">
                     Platform
                   </label>
                   <select
-                    className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
                   >
@@ -616,11 +611,11 @@ function UploadContent() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-gray-300">
+                  <label className="block text-sm font-medium text-pearl">
                     Language
                   </label>
                   <select
-                    className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                   >
@@ -633,11 +628,11 @@ function UploadContent() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-gray-300">
+                  <label className="block text-sm font-medium text-pearl">
                     Region
                   </label>
                   <select
-                    className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
                     value={region}
                     onChange={(e) => setRegion(e.target.value)}
                   >
@@ -665,7 +660,7 @@ function UploadContent() {
 
         {/* Step 4: Analyze */}
         {step === 4 && (
-          <Card className="border-gray-800 bg-gray-900">
+          <Card className="border-atelier bg-surface">
             <CardHeader>
               <CardTitle>Analyze Content</CardTitle>
             </CardHeader>
@@ -674,28 +669,28 @@ function UploadContent() {
                 {analyzing ? (
                   <>
                     <div className="relative mb-6">
-                      <div className="h-20 w-20 animate-spin rounded-full border-4 border-gray-700 border-t-indigo-500" />
+                      <div className="h-20 w-20 animate-spin rounded-full border-4 border-atelier border-t-champagne" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="h-12 w-12 animate-pulse rounded-full bg-indigo-500/20" />
+                        <div className="h-12 w-12 animate-pulse rounded-full bg-champagne/15" />
                       </div>
                     </div>
-                    <h3 className="mb-2 text-lg font-semibold text-white">
+                    <h3 className="mb-2 text-lg font-semibold text-pearl">
                       Analyzing your content...
                     </h3>
-                    <p className="max-w-sm text-sm text-gray-400">
+                    <p className="max-w-sm text-sm text-muted-atelier">
                       Our AI is evaluating visuals, audio, engagement potential,
                       and trend alignment. This may take a moment.
                     </p>
                   </>
                 ) : (
                   <>
-                    <div className="mb-6 rounded-2xl bg-gray-800 p-6">
-                      <Loader2 className="h-10 w-10 text-indigo-400" />
+                    <div className="mb-6 rounded-2xl bg-surface-raised p-6">
+                      <Loader2 className="h-10 w-10 text-champagne" />
                     </div>
-                    <h3 className="mb-2 text-lg font-semibold text-white">
+                    <h3 className="mb-2 text-lg font-semibold text-pearl">
                       Ready to Analyze
                     </h3>
-                    <p className="mb-2 max-w-sm text-sm text-gray-400">
+                    <p className="mb-2 max-w-sm text-sm text-muted-atelier">
                       Everything is set. Hit the button below to run AI analysis
                       on your content and get viability scores.
                     </p>
@@ -743,8 +738,7 @@ function UploadContent() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+    </StudioShell>
   );
 }
 
@@ -755,7 +749,7 @@ function FileTypeIcon({ type }: { type: string }) {
     return <Music className="h-5 w-5 shrink-0 text-purple-400" />;
   if (type.startsWith("image/"))
     return <ImageIcon className="h-5 w-5 shrink-0 text-emerald-400" />;
-  return <File className="h-5 w-5 shrink-0 text-gray-400" />;
+  return <File className="h-5 w-5 shrink-0 text-muted-atelier" />;
 }
 
 function formatFileSize(bytes: number): string {

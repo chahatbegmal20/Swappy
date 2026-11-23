@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { AuthGuard } from "@/components/auth-guard";
+import { StudioShell } from "@/components/studio/studio-shell";
 
 interface ScoreDetail {
   key: string;
@@ -60,7 +61,7 @@ const SCORE_DETAILS: ScoreDetail[] = [
 ];
 
 const EXPLANATION_SECTIONS = [
-  { key: "trend_factors", label: "Trend Factors", icon: <TrendingUp className="h-5 w-5 text-indigo-400" /> },
+  { key: "trend_factors", label: "Trend Factors", icon: <TrendingUp className="h-5 w-5 text-champagne" /> },
   { key: "audience_factors", label: "Audience Factors", icon: <Users className="h-5 w-5 text-cyan-400" /> },
   { key: "content_factors", label: "Content Factors", icon: <FileText className="h-5 w-5 text-emerald-400" /> },
   { key: "timing_factors", label: "Timing Factors", icon: <Clock className="h-5 w-5 text-amber-400" /> },
@@ -144,19 +145,18 @@ function ProjectScorecardContent() {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-1 text-sm text-gray-400 transition-colors hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
-          </div>
+    <StudioShell
+      title={project?.name || "Project"}
+      subtitle="Score detail · refine, re-analyze, and prepare the next cut."
+      actions={
+        <>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1 rounded-xl border border-atelier px-3 py-2 text-sm text-muted-atelier transition-colors hover:text-pearl"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Command
+          </Link>
           <Button
             onClick={() => analyzeMutation.mutate()}
             loading={analyzeMutation.isPending}
@@ -165,11 +165,12 @@ function ProjectScorecardContent() {
             <RefreshCw className="h-4 w-4" />
             Re-analyze
           </Button>
-        </div>
-
+        </>
+      }
+    >
         {isLoading ? (
           <div className="flex items-center justify-center py-32">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-indigo-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-atelier border-t-champagne" />
           </div>
         ) : (
           <>
@@ -182,9 +183,9 @@ function ProjectScorecardContent() {
                 </Badge>
               </div>
               {project?.description && (
-                <p className="mt-1 text-gray-400">{project.description}</p>
+                <p className="mt-1 text-muted-atelier">{project.description}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted-atelier">
                 Created {new Date(project?.created_at ?? "").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
               </p>
             </div>
@@ -193,24 +194,24 @@ function ProjectScorecardContent() {
               <>
                 {/* Hero Section: ScoreRing + Radar */}
                 <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  <Card className="flex flex-col items-center justify-center border-gray-800 bg-gray-900 py-10">
+                  <Card className="flex flex-col items-center justify-center border-atelier bg-surface py-10">
                     <div className="relative">
                       <ScoreRing score={overallViability} label="" size={200} />
                     </div>
-                    <h2 className="mt-4 text-xl font-semibold text-white">
+                    <h2 className="mt-4 text-xl font-semibold text-pearl">
                       Overall Content Viability
                     </h2>
                     {confidenceLower > 0 && (
-                      <p className="mt-1 text-sm text-gray-400">
+                      <p className="mt-1 text-sm text-muted-atelier">
                         Confidence: {Math.round(confidenceLower * 100)}% – {Math.round(confidenceUpper * 100)}%
                       </p>
                     )}
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-muted-atelier">
                       Analyzed {new Date(score.scored_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </p>
                   </Card>
 
-                  <Card className="flex items-center justify-center border-gray-800 bg-gray-900">
+                  <Card className="flex items-center justify-center border-atelier bg-surface">
                     <div className="h-80 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
@@ -255,17 +256,17 @@ function ProjectScorecardContent() {
                     {SCORE_DETAILS.map((detail) => {
                       const value = resolveScoreValue(scoreAsRecord, detail.key);
                       return (
-                        <Card key={detail.key} className="border-gray-800 bg-gray-900">
+                        <Card key={detail.key} className="border-atelier bg-surface">
                           <div className="flex items-start gap-4">
                             <div className="relative">
                               <ScoreRing score={value} label="" size={72} />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="text-gray-400">{detail.icon}</span>
-                                <h3 className="text-sm font-semibold text-white">{detail.label}</h3>
+                                <span className="text-muted-atelier">{detail.icon}</span>
+                                <h3 className="text-sm font-semibold text-pearl">{detail.label}</h3>
                               </div>
-                              <p className="mt-1 text-xs text-gray-500">{detail.description}</p>
+                              <p className="mt-1 text-xs text-muted-atelier">{detail.description}</p>
                             </div>
                           </div>
                         </Card>
@@ -284,27 +285,27 @@ function ProjectScorecardContent() {
                         if (!factors?.length) return null;
                         const isOpen = expandedSections[section.key] ?? false;
                         return (
-                          <Card key={section.key} className="border-gray-800 bg-gray-900 p-0">
+                          <Card key={section.key} className="border-atelier bg-surface p-0">
                             <button
                               onClick={() => toggleSection(section.key)}
                               className="flex w-full items-center justify-between px-6 py-4 text-left"
                             >
                               <div className="flex items-center gap-3">
                                 {section.icon}
-                                <span className="font-medium text-white">{section.label}</span>
+                                <span className="font-medium text-pearl">{section.label}</span>
                                 <Badge variant="default">{factors.length}</Badge>
                               </div>
                               {isOpen ? (
-                                <ChevronUp className="h-5 w-5 text-gray-400" />
+                                <ChevronUp className="h-5 w-5 text-muted-atelier" />
                               ) : (
-                                <ChevronDown className="h-5 w-5 text-gray-400" />
+                                <ChevronDown className="h-5 w-5 text-muted-atelier" />
                               )}
                             </button>
                             {isOpen && (
-                              <div className="border-t border-gray-800 px-6 py-4">
+                              <div className="border-t border-atelier px-6 py-4">
                                 <ul className="space-y-2">
                                   {factors.map((factor, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                    <li key={i} className="flex items-start gap-2 text-sm text-pearl">
                                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
                                       {factor}
                                     </li>
@@ -323,10 +324,10 @@ function ProjectScorecardContent() {
                 <div className="mb-8">
                   <h2 className="mb-4 text-xl font-semibold">Recommendations</h2>
                   {Array.isArray(recommendations) ? (
-                    <Card className="border-gray-800 bg-gray-900">
+                    <Card className="border-atelier bg-surface">
                       <ul className="space-y-3">
                         {recommendations.map((rec, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
+                          <li key={i} className="flex items-start gap-3 text-sm text-pearl">
                             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                             {rec}
                           </li>
@@ -336,7 +337,7 @@ function ProjectScorecardContent() {
                   ) : recommendations ? (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       {recommendations.improvements?.length ? (
-                        <Card className="border-gray-800 bg-gray-900">
+                        <Card className="border-atelier bg-surface">
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                               <CheckCircle2 className="h-5 w-5 text-emerald-400" />
@@ -346,7 +347,7 @@ function ProjectScorecardContent() {
                           <CardContent>
                             <ul className="space-y-2">
                               {recommendations.improvements.map((item, i) => (
-                                <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                <li key={i} className="flex items-start gap-2 text-sm text-pearl">
                                   <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
                                   {item}
                                 </li>
@@ -356,7 +357,7 @@ function ProjectScorecardContent() {
                         </Card>
                       ) : null}
                       {recommendations.target_audiences?.length ? (
-                        <Card className="border-gray-800 bg-gray-900">
+                        <Card className="border-atelier bg-surface">
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                               <Users className="h-5 w-5 text-cyan-400" />
@@ -366,7 +367,7 @@ function ProjectScorecardContent() {
                           <CardContent>
                             <ul className="space-y-2">
                               {recommendations.target_audiences.map((item, i) => (
-                                <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                <li key={i} className="flex items-start gap-2 text-sm text-pearl">
                                   <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-500" />
                                   {item}
                                 </li>
@@ -376,17 +377,17 @@ function ProjectScorecardContent() {
                         </Card>
                       ) : null}
                       {recommendations.best_platforms?.length ? (
-                        <Card className="border-gray-800 bg-gray-900">
+                        <Card className="border-atelier bg-surface">
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
-                              <BarChart3 className="h-5 w-5 text-indigo-400" />
+                              <BarChart3 className="h-5 w-5 text-champagne" />
                               Best Platforms
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
                             <ul className="space-y-2">
                               {recommendations.best_platforms.map((item, i) => (
-                                <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                <li key={i} className="flex items-start gap-2 text-sm text-pearl">
                                   <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
                                   {item}
                                 </li>
@@ -396,7 +397,7 @@ function ProjectScorecardContent() {
                         </Card>
                       ) : null}
                       {recommendations.timing_advice?.length ? (
-                        <Card className="border-gray-800 bg-gray-900">
+                        <Card className="border-atelier bg-surface">
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                               <Clock className="h-5 w-5 text-amber-400" />
@@ -406,7 +407,7 @@ function ProjectScorecardContent() {
                           <CardContent>
                             <ul className="space-y-2">
                               {recommendations.timing_advice.map((item, i) => (
-                                <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                <li key={i} className="flex items-start gap-2 text-sm text-pearl">
                                   <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                                   {item}
                                 </li>
@@ -417,8 +418,8 @@ function ProjectScorecardContent() {
                       ) : null}
                     </div>
                   ) : (
-                    <Card className="border-gray-800 bg-gray-900">
-                      <p className="text-center text-sm text-gray-500">
+                    <Card className="border-atelier bg-surface">
+                      <p className="text-center text-sm text-muted-atelier">
                         No recommendations available yet.
                       </p>
                     </Card>
@@ -429,16 +430,16 @@ function ProjectScorecardContent() {
                 {bestPublishWindow && (
                   <div className="mb-8">
                     <h2 className="mb-4 text-xl font-semibold">Best Publishing Window</h2>
-                    <Card className="border-gray-800 bg-gray-900">
+                    <Card className="border-atelier bg-surface">
                       <div className="flex items-center gap-6">
                         <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-indigo-500/10">
-                          <CalendarClock className="h-8 w-8 text-indigo-400" />
+                          <CalendarClock className="h-8 w-8 text-champagne" />
                         </div>
                         <div>
-                          <p className="text-lg font-semibold text-white">
+                          <p className="text-lg font-semibold text-pearl">
                             {bestPublishWindow.best_days?.join(", ")} at {bestPublishWindow.best_hours}
                           </p>
-                          <p className="mt-1 text-xs text-gray-500">
+                          <p className="mt-1 text-xs text-muted-atelier">
                             Recommended based on audience activity and trend momentum
                           </p>
                         </div>
@@ -463,14 +464,14 @@ function ProjectScorecardContent() {
                 {featureImportance.length > 0 && (
                   <div className="mb-8">
                     <h2 className="mb-4 text-xl font-semibold">Top Feature Drivers</h2>
-                    <Card className="border-gray-800 bg-gray-900">
+                    <Card className="border-atelier bg-surface">
                       <CardContent>
                         <div className="space-y-3">
                           {featureImportance.slice(0, 10).map((f) => (
                             <div key={f.feature} className="flex items-center gap-3">
-                              <span className="w-40 shrink-0 truncate text-sm text-gray-300">{f.feature}</span>
+                              <span className="w-40 shrink-0 truncate text-sm text-pearl">{f.feature}</span>
                               <div className="flex-1">
-                                <div className="h-3 overflow-hidden rounded-full bg-gray-800">
+                                <div className="h-3 overflow-hidden rounded-full bg-surface-raised">
                                   <div
                                     className={cn(
                                       "h-full rounded-full transition-all",
@@ -500,11 +501,11 @@ function ProjectScorecardContent() {
                     <h2 className="mb-4 text-xl font-semibold">Comparable Examples</h2>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {comparableExamples.map((example, i) => (
-                        <Card key={i} className="border-gray-800 bg-gray-900">
+                        <Card key={i} className="border-atelier bg-surface">
                           <div className="flex items-center justify-between">
                             <div className="min-w-0 flex-1">
-                              <h4 className="truncate font-medium text-white">{example.title}</h4>
-                              <p className="mt-1 text-xs text-gray-500">
+                              <h4 className="truncate font-medium text-pearl">{example.title}</h4>
+                              <p className="mt-1 text-xs text-muted-atelier">
                                 {Math.round(example.similarity * 100)}% similar
                               </p>
                             </div>
@@ -521,11 +522,11 @@ function ProjectScorecardContent() {
             )}
 
             {!score && !scoreLoading && (
-              <Card className="border-gray-800 bg-gray-900">
+              <Card className="border-atelier bg-surface">
                 <div className="flex flex-col items-center gap-4 py-16">
                   <BarChart3 className="h-12 w-12 text-gray-600" />
-                  <h3 className="text-lg font-semibold text-gray-400">No Score Yet</h3>
-                  <p className="text-sm text-gray-500">
+                  <h3 className="text-lg font-semibold text-muted-atelier">No Score Yet</h3>
+                  <p className="text-sm text-muted-atelier">
                     Upload your content and run an analysis to get your scorecard.
                   </p>
                   <Button onClick={() => analyzeMutation.mutate()} loading={analyzeMutation.isPending}>
@@ -537,7 +538,6 @@ function ProjectScorecardContent() {
             )}
           </>
         )}
-      </div>
-    </div>
+    </StudioShell>
   );
 }

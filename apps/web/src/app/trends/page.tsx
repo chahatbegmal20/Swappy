@@ -19,6 +19,7 @@ import { cn, getSignalTypeColor } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StudioShell } from "@/components/studio/studio-shell";
 
 const CATEGORIES = [
   "All", "Music", "Gaming", "Tech", "Fashion", "Food", "Fitness", "Education", "Travel",
@@ -116,39 +117,34 @@ export default function TrendsExplorerPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Trends Explorer</h1>
-            <p className="mt-1 text-gray-400">
-              Live signals from Google Trends, Reddit, and Hacker News
-            </p>
+    <StudioShell
+      title="Radar"
+      subtitle="Live signals from Google Trends, Reddit, and Hacker News."
+      actions={
+        <Button
+          variant="outline"
+          onClick={() => refreshMutation.mutate()}
+          loading={refreshMutation.isPending}
+          className="shrink-0"
+        >
+          <RefreshCw className={cn("h-4 w-4", refreshMutation.isPending && "animate-spin")} />
+          Refresh live trends
+        </Button>
+      }
+    >
             {refreshMessage && (
-              <p className="mt-2 text-sm text-indigo-300">{refreshMessage}</p>
+              <p className="mb-4 text-sm text-champagne-bright">{refreshMessage}</p>
             )}
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => refreshMutation.mutate()}
-            loading={refreshMutation.isPending}
-            className="shrink-0"
-          >
-            <RefreshCw className={cn("h-4 w-4", refreshMutation.isPending && "animate-spin")} />
-            Refresh live trends
-          </Button>
-        </div>
 
         {/* Search */}
         <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-atelier" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search trends by topic, keyword, or niche..."
-            className="w-full rounded-xl border border-gray-800 bg-gray-900 py-4 pl-12 pr-4 text-white placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="w-full rounded-xl border border-atelier bg-surface py-4 pl-12 pr-4 text-pearl placeholder:text-muted-atelier focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
           />
         </div>
 
@@ -161,8 +157,8 @@ export default function TrendsExplorerPage() {
               className={cn(
                 "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
                 selectedCategory === cat
-                  ? "border-indigo-500 bg-indigo-500/10 text-indigo-400"
-                  : "border-gray-700 bg-gray-900 text-gray-400 hover:border-gray-600 hover:text-gray-300",
+                  ? "border-champagne bg-indigo-500/10 text-champagne"
+                  : "border-atelier bg-surface text-muted-atelier hover:border-atelier hover:text-pearl",
               )}
             >
               {cat}
@@ -179,9 +175,9 @@ export default function TrendsExplorerPage() {
                 "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                 selectedSignal === signal
                   ? signal === "All"
-                    ? "border-white/30 bg-white/10 text-white"
+                    ? "border-white/30 bg-white/10 text-pearl"
                     : getSignalTypeColor(signal.toLowerCase())
-                  : "border-gray-700 bg-gray-900 text-gray-400 hover:border-gray-600 hover:text-gray-300",
+                  : "border-atelier bg-surface text-muted-atelier hover:border-atelier hover:text-pearl",
               )}
             >
               {signal}
@@ -192,10 +188,10 @@ export default function TrendsExplorerPage() {
         {/* Trend Cards Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-indigo-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-atelier border-t-champagne" />
           </div>
         ) : filteredTrends.length === 0 ? (
-          <div className="flex flex-col items-center py-24 text-gray-500">
+          <div className="flex flex-col items-center py-24 text-muted-atelier">
             <Search className="mb-3 h-10 w-10" />
             <p className="text-lg font-medium">No trends found</p>
             <p className="mt-1 text-sm">Try adjusting your search or filters</p>
@@ -215,12 +211,12 @@ export default function TrendsExplorerPage() {
                   href={`/trends/${encodeURIComponent(trend.topic)}`}
                   className="group"
                 >
-                  <Card className="h-full border-gray-800 bg-gray-900 transition-all hover:border-gray-700 hover:bg-gray-800/50">
+                  <Card className="h-full border-atelier bg-surface transition-all hover:border-atelier hover:bg-surface-raised/50">
                     <div className="flex items-start justify-between">
-                      <h3 className="text-lg font-semibold text-white group-hover:text-indigo-400">
+                      <h3 className="text-lg font-semibold text-pearl group-hover:text-champagne">
                         {trend.topic}
                       </h3>
-                      <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-600 transition-colors group-hover:text-indigo-400" />
+                      <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-600 transition-colors group-hover:text-champagne" />
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -235,7 +231,7 @@ export default function TrendsExplorerPage() {
                       </span>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+                    <div className="mt-4 flex items-center gap-4 text-xs text-muted-atelier">
                       {source && (
                         <span className="flex items-center gap-1">
                           <Globe className="h-3 w-3" />
@@ -248,7 +244,7 @@ export default function TrendsExplorerPage() {
 
                     {volume !== undefined && (
                       <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center justify-between text-xs text-muted-atelier">
                           <span>Volume</span>
                           <span>
                             {volume >= 1_000_000
@@ -258,7 +254,7 @@ export default function TrendsExplorerPage() {
                                 : Math.round(volume)}
                           </span>
                         </div>
-                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-800">
+                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-raised">
                           <div
                             className="h-full rounded-full bg-indigo-500 transition-all"
                             style={{
@@ -295,7 +291,7 @@ export default function TrendsExplorerPage() {
                 return (
                   <Card
                     key={item.region}
-                    className="border-gray-800 bg-gray-900"
+                    className="border-atelier bg-surface"
                     style={{
                       background: `linear-gradient(135deg, rgba(99,102,241,${normalizedVelocity * 0.15}) 0%, rgba(17,24,39,1) 100%)`,
                     }}
@@ -306,10 +302,10 @@ export default function TrendsExplorerPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-indigo-400">
+                        <span className="text-2xl font-bold text-champagne">
                           {Math.round(item.avg_velocity)}
                         </span>
-                        <span className="text-xs text-gray-500">avg velocity</span>
+                        <span className="text-xs text-muted-atelier">avg velocity</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -318,7 +314,6 @@ export default function TrendsExplorerPage() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </StudioShell>
   );
 }

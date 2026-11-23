@@ -83,12 +83,12 @@ export function NewProjectModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-gray-800 bg-gray-900 p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-atelier bg-surface p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Create New Project</h2>
+          <h2 className="text-xl font-bold text-pearl">Create New Project</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+            className="rounded-lg p-1.5 text-muted-atelier transition-colors hover:bg-surface-raised hover:text-pearl"
           >
             <X className="h-5 w-5" />
           </button>
@@ -104,11 +104,11 @@ export function NewProjectModal({
           />
 
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-300">
+            <label className="block text-sm font-medium text-pearl">
               Description
             </label>
             <textarea
-              className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl placeholder:text-muted-atelier focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
               rows={3}
               placeholder="Describe your project..."
               value={description}
@@ -117,11 +117,11 @@ export function NewProjectModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-300">
+            <label className="block text-sm font-medium text-pearl">
               Target Platform
             </label>
             <select
-              className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="block w-full rounded-lg border border-atelier bg-surface-raised px-3 py-2 text-sm text-pearl focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
               value={platform}
               onChange={(e) => setPlatform(e.target.value)}
             >

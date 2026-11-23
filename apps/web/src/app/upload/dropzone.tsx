@@ -66,20 +66,20 @@ export function Dropzone({ onFilesAdded }: DropzoneProps) {
       className={cn(
         "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-16 transition-colors",
         dragging
-          ? "border-indigo-500 bg-indigo-500/10"
-          : "border-gray-700 bg-gray-950 hover:border-gray-600 hover:bg-gray-900/50",
+          ? "border-champagne bg-indigo-500/10"
+          : "border-atelier bg-canvas hover:border-atelier hover:bg-surface/50",
       )}
     >
       <UploadCloud
         className={cn(
           "mb-4 h-12 w-12",
-          dragging ? "text-indigo-400" : "text-gray-500",
+          dragging ? "text-champagne" : "text-muted-atelier",
         )}
       />
-      <p className="mb-1 text-sm font-medium text-gray-300">
+      <p className="mb-1 text-sm font-medium text-pearl">
         {dragging ? "Drop files here" : "Drag & drop files here"}
       </p>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-muted-atelier">
         or click to browse · Video, Audio, Image
       </p>
 
