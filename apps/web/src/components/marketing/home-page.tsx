@@ -1,7 +1,7 @@
 import { HomeHero } from "@/components/marketing/home-hero";
 import { PlaygroundScore } from "@/components/marketing/playground-score";
 import { HomeExplore } from "@/components/marketing/home-explore";
-import { HomeCapabilities } from "@/components/marketing/home-capabilities";
+import { HomeExperience } from "@/components/marketing/home-experience";
 import { HomeCta } from "@/components/marketing/home-cta";
 import { HomeFooter } from "@/components/marketing/home-footer";
 
@@ -11,7 +11,7 @@ export function HomePage() {
       <HomeHero />
       <PlaygroundScore />
       <HomeExplore />
-      <HomeCapabilities />
+      <HomeExperience />
       <HomeCta />
       <HomeFooter />
     </div>

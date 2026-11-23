@@ -13,8 +13,8 @@ export function HomeFooter() {
         <Link href="/trends" className="hover:text-pearl">
           Trends
         </Link>
-        <Link href="/#capabilities" className="hover:text-pearl">
-          Capabilities
+        <Link href="/#experience" className="hover:text-pearl">
+          Experience
         </Link>
         <Link href="/auth/register" className="hover:text-pearl">
           Start free
