@@ -29,7 +29,7 @@ export default function RegisterPage() {
     if (isAuthenticated) router.replace("/dashboard");
   }, [isAuthenticated, router]);
 
-  const [tab, setTab] = useState<Tab>("email");
+  const [tab, setTab] = useState<Tab>("social");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,117 +60,142 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="glass rounded-2xl p-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold">Create your account</h1>
-            <p className="mt-2 text-sm text-gray-400">
-              Start predicting your content&apos;s success
-            </p>
+    <div className="relative grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
+      <div
+        className="relative hidden overflow-hidden lg:block"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 55% at 60% 35%, rgba(91,143,168,0.18), transparent 55%), radial-gradient(ellipse 45% 40% at 20% 70%, rgba(196,184,165,0.12), transparent 50%), #070708",
+        }}
+      >
+        <div className="atelier-grain absolute inset-0" />
+        <div className="relative flex h-full flex-col justify-between p-12">
+          <p className="font-display text-xs tracking-[0.28em] text-champagne uppercase">
+            Swappy Studio
+          </p>
+          <div>
+            <h2 className="font-display text-4xl font-semibold leading-tight text-pearl xl:text-5xl">
+              Build inside an
+              <br />
+              experience center.
+            </h2>
+            <ul className="mt-6 space-y-3 text-sm text-muted-atelier">
+              <li className="flex gap-2">
+                <span className="text-champagne">01</span> Score content before it ships
+              </li>
+              <li className="flex gap-2">
+                <span className="text-champagne">02</span> Read live market radar
+              </li>
+              <li className="flex gap-2">
+                <span className="text-champagne">03</span> Create with agents (coming soon)
+              </li>
+            </ul>
           </div>
+          <p className="text-xs text-muted-atelier">No credit card. Just craft.</p>
+        </div>
+      </div>
 
-          {/* Tab switcher */}
-          <div className="mb-6 flex rounded-lg border border-gray-700 bg-gray-800/50 p-1">
-            <button
-              type="button"
-              onClick={() => setTab("email")}
-              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                tab === "email"
-                  ? "bg-indigo-600 text-white"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Email
-            </button>
+      <div className="flex items-center justify-center px-4 py-12 sm:px-8">
+        <div className="w-full max-w-md">
+          <h1 className="font-display text-3xl font-semibold text-pearl">
+            Create your atelier
+          </h1>
+          <p className="mt-2 text-sm text-muted-atelier">
+            Start free — prediction now, agents next
+          </p>
+
+          <div className="mt-8 flex rounded-xl border border-atelier bg-surface p-1">
             <button
               type="button"
               onClick={() => setTab("social")}
-              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 tab === "social"
-                  ? "bg-indigo-600 text-white"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-champagne/15 text-pearl"
+                  : "text-muted-atelier hover:text-pearl"
               }`}
             >
               Social / Phone
             </button>
+            <button
+              type="button"
+              onClick={() => setTab("email")}
+              className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                tab === "email"
+                  ? "bg-champagne/15 text-pearl"
+                  : "text-muted-atelier hover:text-pearl"
+              }`}
+            >
+              Email
+            </button>
           </div>
 
-          {tab === "email" ? (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-                  {error}
+          <div className="mt-6 rounded-2xl border border-atelier bg-surface p-6 sm:p-8">
+            {tab === "email" ? (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <div className="rounded-xl border border-[#b45a5a]/30 bg-[#b45a5a]/10 px-4 py-3 text-sm text-[#b45a5a]">
+                    {error}
+                  </div>
+                )}
+                <Input
+                  label="Name"
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="region"
+                    className="block text-sm font-medium text-muted-atelier"
+                  >
+                    Region
+                  </label>
+                  <select
+                    id="region"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="block w-full rounded-xl border border-atelier bg-surface px-3.5 py-2.5 text-sm text-pearl focus:border-champagne/50 focus:outline-none focus:ring-2 focus:ring-champagne/20"
+                  >
+                    {regions.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+                <Button type="submit" loading={loading} className="w-full" size="lg">
+                  Enter the experience center
+                </Button>
+              </form>
+            ) : (
+              <SocialAuth />
+            )}
+          </div>
 
-              <Input
-                label="Name"
-                type="text"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-
-              <Input
-                label="Email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-              />
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="region"
-                  className="block text-sm font-medium text-gray-300"
-                >
-                  Region
-                </label>
-                <select
-                  id="region"
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                  className="block w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  {regions.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <Button
-                type="submit"
-                loading={loading}
-                className="w-full"
-                size="lg"
-              >
-                Create Account
-              </Button>
-            </form>
-          ) : (
-            <SocialAuth />
-          )}
-
-          <p className="mt-6 text-center text-sm text-gray-400">
-            Already have an account?{" "}
+          <p className="mt-6 text-center text-sm text-muted-atelier">
+            Already inside?{" "}
             <Link
               href="/auth/login"
-              className="font-medium text-indigo-400 hover:text-indigo-300"
+              className="font-medium text-champagne hover:text-champagne-bright"
             >
               Sign in
             </Link>

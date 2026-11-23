@@ -174,7 +174,7 @@ export function SocialAuth() {
                 type="button"
                 onClick={() => startOAuthRedirect(id)}
                 disabled={!!loading}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-700/50 disabled:opacity-50"
+                className="flex w-full items-center gap-3 rounded-lg border border-atelier bg-surface-raised/50 px-4 py-3 text-sm font-medium text-pearl transition-colors hover:bg-surface-raised/60 disabled:opacity-50"
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
                 <span className="flex-1 text-left">{label}</span>
@@ -187,7 +187,7 @@ export function SocialAuth() {
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-white" />
                 )}
                 {loading === id && (
-                  <span className="text-[10px] text-gray-400">Redirecting…</span>
+                  <span className="text-[10px] text-muted-atelier">Redirecting…</span>
                 )}
               </button>
             );
@@ -195,17 +195,17 @@ export function SocialAuth() {
 
           <div className="relative my-2">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700" />
+              <div className="w-full border-t border-atelier" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-gray-900 px-3 text-gray-500">or</span>
+              <span className="bg-surface px-3 text-muted-atelier">or</span>
             </div>
           </div>
 
           <button
             onClick={() => setMode("phone-entry")}
             disabled={!!loading}
-            className="flex w-full items-center gap-3 rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-700/50 disabled:opacity-50"
+            className="flex w-full items-center gap-3 rounded-lg border border-atelier bg-surface-raised/50 px-4 py-3 text-sm font-medium text-pearl transition-colors hover:bg-surface-raised/60 disabled:opacity-50"
           >
             <Phone className="h-5 w-5 flex-shrink-0 text-green-400" />
             <span className="flex-1 text-left">Continue with Phone Number</span>
@@ -217,7 +217,7 @@ export function SocialAuth() {
         <form onSubmit={handlePhoneSendOtp} className="space-y-4">
           <div className="text-center">
             <Phone className="mx-auto mb-2 h-8 w-8 text-green-400" />
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-atelier">
               Enter your phone number to receive a verification code
             </p>
           </div>
@@ -252,8 +252,8 @@ export function SocialAuth() {
         <form onSubmit={handlePhoneVerify} className="space-y-4">
           <div className="text-center">
             <Phone className="mx-auto mb-2 h-8 w-8 text-green-400" />
-            <p className="text-sm text-gray-400">
-              Enter the 6-digit code sent to <strong className="text-white">{phone}</strong>
+            <p className="text-sm text-muted-atelier">
+              Enter the 6-digit code sent to <strong className="text-pearl">{phone}</strong>
             </p>
           </div>
 
@@ -295,7 +295,7 @@ export function SocialAuth() {
           <button
             type="button"
             onClick={handlePhoneSendOtp}
-            className="w-full text-center text-sm text-indigo-400 hover:text-indigo-300"
+            className="w-full text-center text-sm text-champagne hover:text-champagne-bright"
           >
             Resend code
           </button>
