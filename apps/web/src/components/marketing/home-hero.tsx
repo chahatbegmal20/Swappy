@@ -77,10 +77,10 @@ export function HomeHero() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
-              href="#explore"
+              href="#try-score"
               className="cta-ghost inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-medium tracking-wide"
             >
-              Explore What&apos;s Possible
+              Play with a demo
             </a>
           </motion.div>
         </div>

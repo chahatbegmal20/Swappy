@@ -24,6 +24,7 @@ const appLinks = [
 ];
 
 const marketingLinks = [
+  { href: "/#try-score", label: "Try demo" },
   { href: "/#explore", label: "Explore" },
   { href: "/#capabilities", label: "Capabilities" },
   { href: "/trends", label: "Trends" },
