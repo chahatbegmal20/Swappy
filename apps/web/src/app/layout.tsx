@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Syne, Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Navbar } from "@/components/navbar";
@@ -11,11 +11,22 @@ import {
   getSiteUrl,
 } from "@/lib/seo";
 
-const inter = Inter({ subsets: ["latin"] });
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
 const siteUrl = getSiteUrl();
 
 export const viewport: Viewport = {
-  themeColor: "#030712",
+  themeColor: "#070708",
   width: "device-width",
   initialScale: 1,
 };
@@ -23,14 +34,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${SITE_NAME} — Creator Market Intelligence & Virality Prediction`,
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
     template: `%s | ${SITE_NAME}`,
   },
   description: DEFAULT_DESCRIPTION,
   keywords: DEFAULT_KEYWORDS,
-  authors: [{ name: "Swappy" }],
-  creator: "Swappy",
-  publisher: "Swappy",
+  authors: [{ name: "Swappy Studio" }],
+  creator: "Swappy Studio",
+  publisher: "Swappy Studio",
   applicationName: SITE_NAME,
   alternates: {
     canonical: "/",
@@ -40,12 +51,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Creator Market Intelligence Platform`,
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: DEFAULT_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Creator Market Intelligence Platform`,
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: DEFAULT_DESCRIPTION,
   },
   robots: {
@@ -66,11 +77,7 @@ const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: SITE_NAME,
-  alternateName: [
-    "Swappy AI",
-    "Swappy Creator Market Intelligence",
-    "Creator Marketplace Intelligence",
-  ],
+  alternateName: ["Swappy", "Swappy AI", "Swappy Creator Studio"],
   applicationCategory: "BusinessApplication",
   applicationSubCategory: "Creator Analytics",
   operatingSystem: "Web",
@@ -83,11 +90,10 @@ const softwareJsonLd = {
   },
   featureList: [
     "Creator market intelligence",
-    "YouTube and TikTok trend tracking",
     "Virality prediction",
-    "Audience fit scoring",
-    "Launch timing recommendations",
+    "Trend tracking",
     "Multimodal content analysis",
+    "AI creative agents (coming soon)",
   ],
   keywords: DEFAULT_KEYWORDS.join(", "),
 };
@@ -98,26 +104,26 @@ const faqJsonLd = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "What is Swappy?",
+      name: "What is Swappy Studio?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Swappy is a creator market intelligence platform that helps content creators predict trends, score virality, and decide when to publish on YouTube, TikTok, Instagram, and other social platforms.",
+        text: "Swappy Studio is an AI creative platform for creators: score and time content with market intelligence today, with AI agents for generation and editing coming next.",
       },
     },
     {
       "@type": "Question",
-      name: "What is creator market intelligence?",
+      name: "What can I use in Swappy today?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Creator market intelligence combines trend data, audience signals, and AI scoring so creators can understand demand and competition before posting content.",
+        text: "You can upload drafts, get predictive scores, explore trends, and manage projects in the creator studio workspace.",
       },
     },
     {
       "@type": "Question",
-      name: "Can Swappy help me predict if a video will go viral?",
+      name: "Are AI creative agents available now?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Swappy provides predictive scores for virality, trend alignment, audience fit, and launch timing so you can improve drafts before they go live.",
+        text: "Agent-powered generation and MCP editing are in development. The live product currently focuses on creator market intelligence and scoring.",
       },
     },
   ],
@@ -129,7 +135,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" className={`dark ${syne.variable} ${manrope.variable}`} suppressHydrationWarning>
       <head>
         <script src="https://accounts.google.com/gsi/client" async defer />
         <script
@@ -141,10 +147,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       </head>
-      <body
-        className={`${inter.className} bg-gray-950 text-white min-h-screen`}
-        suppressHydrationWarning
-      >
+      <body className="min-h-screen bg-canvas font-sans text-pearl antialiased" suppressHydrationWarning>
         <Providers>
           <Navbar />
           <main>{children}</main>

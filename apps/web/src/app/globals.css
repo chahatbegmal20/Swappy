@@ -1,39 +1,163 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --primary: #4f46e5;
-  --primary-light: #818cf8;
-  --accent: #06b6d4;
-}
+  /* Obsidian Atelier */
+  --canvas: #070708;
+  --surface: #121214;
+  --surface-raised: #1c1c1f;
+  --border: #2a2a2e;
+  --pearl: #f4f1ec;
+  --muted: #9a958c;
+  --champagne: #c4b8a5;
+  --champagne-bright: #e0d6c8;
+  --steel: #5b8fa8;
+  --success: #6f9b7a;
+  --danger: #b45a5a;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #f5f5f5;
-  }
+  --background: var(--canvas);
+  --foreground: var(--pearl);
+  --primary: var(--champagne);
+  --accent: var(--steel);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--canvas);
+  color: var(--pearl);
+  font-family: var(--font-body), "Segoe UI", sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--champagne) 35%, transparent);
+  color: var(--pearl);
 }
 
 @layer utilities {
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+  }
+
+  .text-pearl {
+    color: var(--pearl);
+  }
+
+  .text-muted-atelier {
+    color: var(--muted);
+  }
+
+  .text-champagne {
+    color: var(--champagne);
+  }
+
+  .bg-canvas {
+    background-color: var(--canvas);
+  }
+
+  .bg-surface {
+    background-color: var(--surface);
+  }
+
+  .bg-surface-raised {
+    background-color: var(--surface-raised);
+  }
+
+  .border-atelier {
+    border-color: var(--border);
+  }
+
   .gradient-text {
-    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    background: linear-gradient(
+      120deg,
+      var(--pearl) 0%,
+      var(--champagne-bright) 45%,
+      var(--steel) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
   .gradient-bg {
-    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    background: linear-gradient(
+      135deg,
+      var(--champagne) 0%,
+      var(--champagne-bright) 55%,
+      color-mix(in srgb, var(--steel) 55%, var(--champagne)) 100%
+    );
+    color: var(--canvas);
   }
+
   .glass {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  }
+
+  .atelier-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 180px 180px;
+    opacity: 0.035;
+    pointer-events: none;
+  }
+
+  .atelier-vignette {
+    background: radial-gradient(
+      ellipse 80% 70% at 50% 40%,
+      transparent 0%,
+      color-mix(in srgb, var(--canvas) 55%, transparent) 70%,
+      var(--canvas) 100%
+    );
+    pointer-events: none;
+  }
+
+  .cta-primary {
+    background: linear-gradient(135deg, var(--champagne-bright), var(--champagne));
+    color: var(--canvas);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+  }
+
+  .cta-primary:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+
+  .cta-ghost {
+    border: 1px solid color-mix(in srgb, var(--champagne) 45%, transparent);
+    color: var(--pearl);
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+
+  .cta-ghost:hover {
+    border-color: var(--champagne);
+    background: color-mix(in srgb, var(--champagne) 8%, transparent);
+  }
+}
+
+@keyframes atelier-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.04) rotate(4deg);
+  }
+}
+
+.atelier-breathe {
+  animation: atelier-breathe 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .atelier-breathe {
+    animation: none !important;
   }
 }
