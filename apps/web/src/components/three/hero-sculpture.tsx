@@ -1,11 +1,11 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Float, MeshTransmissionMaterial } from "@react-three/drei";
+import { Float } from "@react-three/drei";
 import { Suspense, useEffect, useRef } from "react";
 import type { Group, Mesh } from "three";
-import * as THREE from "three";
 
+/** Lightweight hero mesh — no transmission / HDR env (those crush FPS). */
 function LiquidForm({ reduceMotion }: { reduceMotion: boolean }) {
   const group = useRef<Group>(null);
   const mesh = useRef<Mesh>(null);
@@ -22,50 +22,39 @@ function LiquidForm({ reduceMotion }: { reduceMotion: boolean }) {
 
   useFrame((state) => {
     if (!group.current || !mesh.current) return;
-    const t = state.clock.elapsedTime;
     if (reduceMotion) {
       group.current.rotation.y = 0.35;
       return;
     }
-    group.current.rotation.y = t * 0.18 + pointer.current.x * 0.25;
-    group.current.rotation.x = Math.sin(t * 0.35) * 0.12 + pointer.current.y * 0.12;
-    mesh.current.scale.setScalar(1 + Math.sin(t * 0.8) * 0.03);
+    const t = state.clock.elapsedTime;
+    group.current.rotation.y = t * 0.14 + pointer.current.x * 0.2;
+    group.current.rotation.x =
+      Math.sin(t * 0.28) * 0.1 + pointer.current.y * 0.1;
   });
 
   return (
     <Float
-      speed={reduceMotion ? 0 : 1.2}
-      rotationIntensity={reduceMotion ? 0 : 0.35}
-      floatIntensity={reduceMotion ? 0 : 0.6}
+      speed={reduceMotion ? 0 : 0.9}
+      rotationIntensity={reduceMotion ? 0 : 0.25}
+      floatIntensity={reduceMotion ? 0 : 0.4}
     >
       <group ref={group}>
-        <mesh ref={mesh} castShadow>
-          <icosahedronGeometry args={[1.35, 1]} />
-          <MeshTransmissionMaterial
-            backside
-            samples={4}
-            resolution={256}
-            thickness={0.55}
-            chromaticAberration={0.06}
-            anisotropy={0.2}
-            distortion={0.35}
-            distortionScale={0.4}
-            temporalDistortion={0.12}
-            iridescence={0.9}
-            iridescenceIOR={1.2}
-            iridescenceThicknessRange={[100, 800]}
+        <mesh ref={mesh}>
+          <icosahedronGeometry args={[1.3, 0]} />
+          <meshStandardMaterial
             color="#c4b8a5"
-            attenuationColor="#5b8fa8"
-            attenuationDistance={1.2}
+            metalness={0.85}
+            roughness={0.28}
+            envMapIntensity={0.6}
           />
         </mesh>
-        <mesh scale={1.55}>
+        <mesh scale={1.45}>
           <icosahedronGeometry args={[1, 0]} />
           <meshBasicMaterial
             color="#e0d6c8"
             wireframe
             transparent
-            opacity={0.12}
+            opacity={0.14}
           />
         </mesh>
       </group>
@@ -76,11 +65,10 @@ function LiquidForm({ reduceMotion }: { reduceMotion: boolean }) {
 function Scene({ reduceMotion }: { reduceMotion: boolean }) {
   return (
     <>
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[4, 6, 2]} intensity={1.4} color="#f4f1ec" />
-      <directionalLight position={[-3, -2, -4]} intensity={0.55} color="#5b8fa8" />
+      <ambientLight intensity={0.45} />
+      <directionalLight position={[4, 5, 2]} intensity={1.2} color="#f4f1ec" />
+      <directionalLight position={[-3, -1, -3]} intensity={0.4} color="#5b8fa8" />
       <LiquidForm reduceMotion={reduceMotion} />
-      <Environment preset="city" environmentIntensity={0.45} />
     </>
   );
 }
@@ -95,11 +83,15 @@ export function HeroSculpture({
   return (
     <div className={className} aria-hidden>
       <Canvas
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
+        frameloop={reduceMotion ? "never" : "always"}
         camera={{ position: [0, 0, 4.2], fov: 42 }}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        onCreated={({ gl }) => {
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
+        gl={{
+          antialias: false,
+          alpha: true,
+          powerPreference: "high-performance",
+          stencil: false,
+          depth: true,
         }}
       >
         <Suspense fallback={null}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const NODES = [
   {
@@ -39,17 +39,30 @@ const NODES = [
 export function PlaygroundAgents() {
   const [active, setActive] = useState(0);
   const [auto, setAuto] = useState(true);
+  const [inView, setInView] = useState(false);
+  const rootRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!auto) return;
+    const el = rootRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(!!entry?.isIntersecting),
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!auto || !inView) return;
     const id = window.setInterval(() => {
       setActive((i) => (i + 1) % NODES.length);
     }, 2200);
     return () => window.clearInterval(id);
-  }, [auto]);
+  }, [auto, inView]);
 
   return (
-    <article>
+    <article ref={rootRef}>
       <div className="max-w-2xl">
         <span className="text-xs tracking-[0.2em] text-champagne uppercase">
           Coming soon · Playable map

@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Pause, Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const STYLES = [
   {
@@ -27,9 +27,29 @@ const STYLES = [
 
 export function PlaygroundReel() {
   const [style, setStyle] = useState(STYLES[0]);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const [frame, setFrame] = useState(0);
   const [progress, setProgress] = useState(0);
+  const rootRef = useRef<HTMLElement | null>(null);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        const visible = !!entry?.isIntersecting;
+        if (visible && !startedRef.current) {
+          startedRef.current = true;
+          setPlaying(true);
+        }
+        if (!visible) setPlaying(false);
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!playing) return;
@@ -51,7 +71,10 @@ export function PlaygroundReel() {
   }, [style.id]);
 
   return (
-    <article className="grid items-center gap-10 lg:grid-cols-2 lg:[&>*:first-child]:order-2">
+    <article
+      ref={rootRef}
+      className="grid items-center gap-10 lg:grid-cols-2 lg:[&>*:first-child]:order-2"
+    >
       <div>
         <span className="text-xs tracking-[0.2em] text-champagne uppercase">
           Concept preview · Playable
