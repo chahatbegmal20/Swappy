@@ -1,6 +1,5 @@
 import logging
 import os
-import secrets
 from pathlib import Path
 
 from pydantic import field_validator, model_validator
@@ -35,12 +34,15 @@ class Settings(BaseSettings):
     MONGO_DB_NAME: str = "swappy"
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # Object storage — local MinIO defaults; staging/prod use R2 or S3 via env
+    # Object storage:
+    # - Local dev defaults aim at MinIO.
+    # - On ECS, leave S3_ACCESS_KEY / S3_SECRET_KEY empty and use the task IAM role.
+    # - Set S3_ENDPOINT only for MinIO/R2 path-style; leave empty for AWS S3.
     S3_ENDPOINT: str = "http://localhost:9000"
     S3_ACCESS_KEY: str = "minioadmin"
     S3_SECRET_KEY: str = "minioadmin"
     S3_BUCKET: str = "swappy-uploads"
-    S3_REGION: str = "auto"
+    S3_REGION: str = "ap-southeast-2"
     S3_FORCE_PATH_STYLE: bool = True
 
     JWT_SECRET: str = "swappy-dev-secret-change-in-production"
@@ -100,17 +102,23 @@ class Settings(BaseSettings):
             object.__setattr__(self, "BACKEND_URL", render_url)
             logger.info("BACKEND_URL defaulted from RENDER_EXTERNAL_URL=%s", render_url)
 
-        if not self.allow_insecure_defaults:
+        # Strip local MinIO defaults outside development so ECS uses IAM role + real S3.
+        if not self.is_development:
+            endpoint = (self.S3_ENDPOINT or "").strip()
+            if "localhost" in endpoint or "127.0.0.1" in endpoint:
+                object.__setattr__(self, "S3_ENDPOINT", "")
+            key = (self.S3_ACCESS_KEY or "").strip().lower()
+            if key in {"", "minioadmin", "your-access-key", "changeme"}:
+                object.__setattr__(self, "S3_ACCESS_KEY", "")
+                object.__setattr__(self, "S3_SECRET_KEY", "")
+                object.__setattr__(self, "S3_FORCE_PATH_STYLE", False)
+
+        if self.allow_insecure_defaults:
             jwt = self.JWT_SECRET.strip()
             if jwt in _INSECURE_JWT_DEFAULTS or len(jwt) < 32:
-                # Prefer an explicit env secret; otherwise mint one so the service can boot.
-                generated = secrets.token_urlsafe(48)
-                object.__setattr__(self, "JWT_SECRET", generated)
                 logger.warning(
-                    "JWT_SECRET was missing/insecure for APP_ENV=%s — generated an ephemeral "
-                    "secret for this process. Set a stable JWT_SECRET in the host env "
-                    "(Render → Environment → Generate) so tokens survive restarts.",
-                    self.APP_ENV,
+                    "JWT_SECRET is the insecure development default. "
+                    "Set a unique 32+ character secret before any shared deploy."
                 )
         return self
 
@@ -132,7 +140,20 @@ class Settings(BaseSettings):
 
     @property
     def allow_mock_storage(self) -> bool:
-        return self.is_development or self.ALLOW_MOCK_STORAGE
+        """Mock disk uploads are local-development only.
+
+        ALLOW_MOCK_STORAGE=true on ECS/staging is ignored — files would land in the
+        container's ephemeral filesystem and disappear on deploy/scale/crash.
+        """
+        if not self.is_development:
+            return False
+        return True
+
+    @property
+    def uses_iam_role_for_s3(self) -> bool:
+        """True when access keys are blank — boto3 should use the ECS task role."""
+        key = (self.S3_ACCESS_KEY or "").strip().lower()
+        return key in {"", "minioadmin", "your-access-key", "changeme"}
 
     def google_oauth_redirect_uri(self) -> str:
         return (
@@ -165,6 +186,13 @@ class Settings(BaseSettings):
             )
         if self.APP_DEBUG and self.is_production:
             problems.append("APP_DEBUG must be false in production")
+        if self.ALLOW_MOCK_STORAGE:
+            problems.append(
+                "ALLOW_MOCK_STORAGE must be false outside local development "
+                "(uploads must use private S3/R2 — never the ECS container disk)"
+            )
+        if not (self.S3_BUCKET or "").strip():
+            problems.append("S3_BUCKET must be set for staging/production object storage")
 
         if problems:
             raise RuntimeError(

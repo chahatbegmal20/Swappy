@@ -20,8 +20,13 @@ services:
         value: staging
       - key: APP_DEBUG
         value: "false"
+      # Never true on cloud — mock writes into ephemeral container disk.
       - key: ALLOW_MOCK_STORAGE
-        value: "true"
+        value: "false"
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_REGION
+        value: ap-southeast-2
       - key: MONGO_DB_NAME
         value: swappy_staging
       - key: JWT_ALGORITHM

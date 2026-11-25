@@ -68,9 +68,13 @@ app.include_router(dashboard.router, prefix=API_PREFIX)
 
 @app.get("/health")
 async def health_check():
+    from apps.api.core.storage import storage_backend_label
+
     return {
         "status": "healthy",
         "env": settings.APP_ENV,
+        "storage": storage_backend_label(),
+        "mock_storage": settings.allow_mock_storage,
     }
 
 
@@ -97,12 +101,33 @@ async def oauth_frontend_callback_fallback(request: Request):
 
 @app.put("/mock-upload/{path:path}")
 async def mock_upload(path: str, request: Request):
-    """Accepts file uploads when S3/MinIO is not available and saves to local disk."""
+    """Development-only upload sink. Disabled on staging/ECS — use private S3."""
     import os
-    local_dir = os.path.join("local_uploads", os.path.dirname(path))
-    os.makedirs(local_dir, exist_ok=True)
-    local_path = os.path.join("local_uploads", path)
+
+    from fastapi import HTTPException
+
+    # Hard gate: never write into an ECS task filesystem in cloud environments.
+    if not settings.is_development or not settings.allow_mock_storage:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    parts = path.replace("\\", "/").split("/")
+    if (
+        not path
+        or path.startswith("/")
+        or path.startswith("\\")
+        or any(p in ("", ".", "..") for p in parts)
+    ):
+        raise HTTPException(status_code=400, detail="Invalid upload path")
+
+    root = os.path.abspath("local_uploads")
+    local_path = os.path.abspath(os.path.join(root, path))
+    if not local_path.startswith(root + os.sep) and local_path != root:
+        raise HTTPException(status_code=400, detail="Invalid upload path")
+
+    os.makedirs(os.path.dirname(local_path) or root, exist_ok=True)
     body = await request.body()
+    if len(body) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Upload too large")
     with open(local_path, "wb") as f:
         f.write(body)
-    return {"status": "ok", "path": path, "local_path": local_path}
+    return {"status": "ok", "path": path}
