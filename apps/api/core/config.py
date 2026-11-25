@@ -113,6 +113,7 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "S3_SECRET_KEY", "")
                 object.__setattr__(self, "S3_FORCE_PATH_STYLE", False)
 
+        # Never mint ephemeral JWT secrets — that breaks Google login across ECS tasks.
         if self.allow_insecure_defaults:
             jwt = self.JWT_SECRET.strip()
             if jwt in _INSECURE_JWT_DEFAULTS or len(jwt) < 32:

@@ -44,6 +44,7 @@ async def init_db() -> None:
         ContentUpload,
         ContentScore,
         TrendSignal,
+        OAuthState,
     )
 
     logger.info(
@@ -63,6 +64,7 @@ async def init_db() -> None:
                 ContentUpload,
                 ContentScore,
                 TrendSignal,
+                OAuthState,
             ],
         )
     except Exception as exc:

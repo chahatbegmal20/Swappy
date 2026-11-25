@@ -1,10 +1,10 @@
 ﻿import hashlib
 import logging
 import os
-import random
 import secrets
 import time
 import urllib.parse
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -18,7 +18,7 @@ from apps.api.core.security import (
     hash_password,
     verify_password,
 )
-from apps.api.models.database import SocialAccount, User, utcnow
+from apps.api.models.database import OAuthState, SocialAccount, User, utcnow
 from apps.api.models.schemas import (
     PhoneLoginRequest,
     PhoneVerifyRequest,
@@ -35,9 +35,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# â”€â”€ stores (use Redis in production) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Phone OTP remains process-local (disabled outside development).
 _otp_store: dict[str, dict] = {}
-_oauth_state_store: dict[str, dict] = {}
 
 OTP_TTL_SECONDS = 300
 OTP_MAX_ATTEMPTS = 5
@@ -129,12 +128,53 @@ def _get_frontend_base(request: Optional[Request] = None, redirect_base: Optiona
 
 
 def _get_backend_base(request: Optional[Request] = None) -> str:
-    return _get_request_base(request, default_base=settings.BACKEND_URL)
+    """Canonical API origin — never trust Host / X-Forwarded-* for OAuth."""
+    del request
+    base = (settings.BACKEND_URL or "").strip().rstrip("/")
+    if not base.startswith("http://") and not base.startswith("https://"):
+        base = "http://127.0.0.1:8000"
+    return base
 
 
 def _get_redirect_uri(provider: str, request: Optional[Request] = None) -> str:
-    """Redirect URI must point to the backend callback so it can exchange the code."""
+    """Must match Google Cloud Console exactly (settings.BACKEND_URL)."""
     return f"{_get_backend_base(request).rstrip('/')}/api/v1/auth/social/{provider}/callback"
+
+
+async def _save_oauth_state(state: str, data: dict) -> None:
+    expires = datetime.now(timezone.utc) + timedelta(seconds=OAUTH_STATE_TTL)
+    doc = OAuthState(
+        id=state,
+        provider=data["provider"],
+        redirect_uri=data["redirect_uri"],
+        frontend_base=data["frontend_base"],
+        code_verifier=data.get("code_verifier"),
+        expires_at=expires,
+    )
+    await doc.insert()
+
+
+async def _pop_oauth_state(state: str) -> Optional[dict]:
+    doc = await OAuthState.get(state)
+    if doc is None:
+        return None
+    await doc.delete()
+    expires = doc.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires:
+        return None
+    out: dict = {
+        "provider": doc.provider,
+        "redirect_uri": doc.redirect_uri,
+        "frontend_base": doc.frontend_base,
+        "created_at": doc.created_at.timestamp()
+        if hasattr(doc.created_at, "timestamp")
+        else time.time(),
+    }
+    if doc.code_verifier:
+        out["code_verifier"] = doc.code_verifier
+    return out
 
 
 def _make_code_challenge(verifier: str) -> str:
@@ -429,7 +469,7 @@ async def social_authorize(provider: str, request: Request):
         params["code_challenge_method"] = "S256"
         state_data["code_verifier"] = code_verifier
 
-    _oauth_state_store[state] = state_data
+    await _save_oauth_state(state, state_data)
 
     auth_url = f"{cfg['authorize_url']}?{urllib.parse.urlencode(params)}"
     return RedirectResponse(url=auth_url, status_code=302)
@@ -447,12 +487,15 @@ async def social_callback(
     Exchange the code for tokens, fetch profile, create/find user, issue Swappy JWT.
     Redirect back to frontend with token in URL fragment.
     """
-    state_data = _oauth_state_store.pop(state, None)
+    state_data = await _pop_oauth_state(state)
     if not state_data:
-        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired OAuth state. Close this tab and try Sign in with Google again.",
+        )
 
-    if time.time() - state_data["created_at"] > OAUTH_STATE_TTL:
-        raise HTTPException(status_code=400, detail="OAuth state expired")
+    if state_data.get("provider") and state_data["provider"] != provider:
+        raise HTTPException(status_code=400, detail="OAuth provider mismatch")
 
     profile = await _exchange_code_for_profile(provider, code, state_data, request=request)
 
@@ -566,7 +609,7 @@ async def list_social_accounts(
 # â”€â”€ phone auth (OTP) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _generate_otp() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return f"{secrets.randbelow(1_000_000):06d}"
 
 
 @router.post("/phone/send-otp", status_code=200)

@@ -159,3 +159,25 @@ class TrendSignal(Document):
         indexes = [
             [("topic", pymongo.ASCENDING)],
         ]
+
+
+class OAuthState(Document):
+    """Durable OAuth `state` so authorize + callback work across ECS tasks.
+
+    In-memory dicts break when the load balancer sends the Google callback to a
+    different task than the one that started the flow.
+    """
+
+    id: str  # OAuth state parameter (primary key)
+    provider: str
+    redirect_uri: str
+    frontend_base: str
+    code_verifier: Optional[str] = None
+    created_at: datetime = Field(default_factory=utcnow)
+    expires_at: datetime
+
+    class Settings:
+        name = "oauth_states"
+        indexes = [
+            [("expires_at", pymongo.ASCENDING)],
+        ]
