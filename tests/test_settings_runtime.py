@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from apps.api.core.config import Settings
@@ -35,7 +33,8 @@ def test_staging_uses_render_external_url_for_backend(monkeypatch):
     settings.validate_for_runtime()
 
 
-def test_staging_replaces_insecure_jwt_secret(monkeypatch):
+def test_staging_rejects_insecure_jwt_secret(monkeypatch):
+    """Missing/weak JWT_SECRET must fail closed — never mint an ephemeral secret."""
     monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
     settings = Settings(
         APP_ENV="staging",
@@ -45,9 +44,22 @@ def test_staging_replaces_insecure_jwt_secret(monkeypatch):
         FRONTEND_URL="https://swappy.vercel.app",
         BACKEND_URL="https://swappy-api.onrender.com",
     )
-    assert settings.JWT_SECRET != "swappy-dev-secret-change-in-production"
-    assert len(settings.JWT_SECRET) >= 32
-    settings.validate_for_runtime()
+    with pytest.raises(RuntimeError, match="JWT_SECRET"):
+        settings.validate_for_runtime()
+
+
+def test_production_rejects_mock_storage():
+    settings = Settings(
+        APP_ENV="production",
+        APP_DEBUG=False,
+        ALLOW_MOCK_STORAGE=True,
+        JWT_SECRET="a" * 32,
+        DATABASE_URL="mongodb+srv://user:pass@cluster.example.mongodb.net/",
+        FRONTEND_URL="https://app.example.com",
+        BACKEND_URL="https://api.example.com",
+    )
+    with pytest.raises(RuntimeError, match="ALLOW_MOCK_STORAGE"):
+        settings.validate_for_runtime()
 
 
 def test_production_rejects_localhost_frontend():
@@ -68,6 +80,7 @@ def test_production_accepts_hardened_config(monkeypatch):
     settings = Settings(
         APP_ENV="production",
         APP_DEBUG=False,
+        ALLOW_MOCK_STORAGE=False,
         JWT_SECRET="a" * 32,
         DATABASE_URL="mongodb+srv://user:pass@cluster.example.mongodb.net/",
         FRONTEND_URL="https://app.example.com",

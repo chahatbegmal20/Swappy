@@ -76,6 +76,11 @@ docker push "$REPO:latest"
 APP_ENV=staging
 APP_DEBUG=false
 ALLOW_MOCK_STORAGE=true
+# Production checklist (ECS task env):
+# APP_ENV=production
+# APP_DEBUG=false
+# ALLOW_MOCK_STORAGE=false
+# JWT_SECRET=<stable 32+ char secret from Secrets Manager / SSM — never ephemeral>
 DATABASE_URL=mongodb+srv://...
 MONGO_DB_NAME=swappy_staging
 JWT_SECRET=<long unique secret, not the local .env default>

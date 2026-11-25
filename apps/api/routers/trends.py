@@ -1,7 +1,9 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from apps.api.core.security import get_current_user
+from apps.api.models.database import User
 from apps.api.models.schemas import TrendDetailResponse, TrendResponse
 from apps.api.services.trend_service import (
     compute_trend_score,
@@ -59,8 +61,15 @@ async def heatmap():
 
 
 @router.post("/refresh")
-async def refresh(force: bool = Query(False)):
-    """Pull live Google Trends / Reddit / Hacker News into the database."""
+async def refresh(
+    force: bool = Query(False),
+    current_user: User = Depends(get_current_user),
+):
+    """Pull live Google Trends / Reddit / Hacker News into the database.
+
+    Authenticated — prevents anonymous DoS / cache-busting against live sources.
+    """
+    del current_user  # auth gate only
     return await refresh_live_trends(force=force)
 
 

@@ -1,7 +1,6 @@
 ﻿import hashlib
 import logging
 import os
-import random
 import secrets
 import time
 import urllib.parse
@@ -129,11 +128,16 @@ def _get_frontend_base(request: Optional[Request] = None, redirect_base: Optiona
 
 
 def _get_backend_base(request: Optional[Request] = None) -> str:
-    return _get_request_base(request, default_base=settings.BACKEND_URL)
+    """Canonical API origin for OAuth — never trust Host / X-Forwarded-* here."""
+    del request  # call-site compatibility; redirect_uri must not follow request headers
+    base = (settings.BACKEND_URL or "").strip().rstrip("/")
+    if not base.startswith("http://") and not base.startswith("https://"):
+        base = "http://127.0.0.1:8000"
+    return base
 
 
 def _get_redirect_uri(provider: str, request: Optional[Request] = None) -> str:
-    """Redirect URI must point to the backend callback so it can exchange the code."""
+    """Redirect URI must match the provider console entry (canonical BACKEND_URL)."""
     return f"{_get_backend_base(request).rstrip('/')}/api/v1/auth/social/{provider}/callback"
 
 
@@ -232,7 +236,12 @@ async def _exchange_code_for_profile(
             resp = await client.post(cfg["token_url"], data=token_data, headers=headers)
 
     if resp.status_code != 200:
-        logger.error("Token exchange failed for %s: %s %s", provider, resp.status_code, resp.text)
+        # Do not log response body — may contain provider tokens or error payloads with secrets.
+        logger.error(
+            "Token exchange failed for %s: HTTP %s",
+            provider,
+            resp.status_code,
+        )
         raise HTTPException(status_code=401, detail=f"Token exchange failed with {provider}")
 
     tokens = resp.json()
@@ -484,14 +493,22 @@ async def social_callback(
 @router.post("/social", response_model=TokenResponse)
 async def social_login_direct(body: SocialLoginRequest):
     """
-    Direct token exchange (for Google ID tokens from GIS popup, etc.).
-    The frontend passes a provider token directly; we verify it.
+    Direct token exchange (Google ID tokens). Prefer the /authorize redirect flow.
+    Google tokens must match GOOGLE_CLIENT_ID (aud) before a session is minted.
     """
     verifier = _DIRECT_VERIFIERS.get(body.provider)
     if not verifier:
         raise HTTPException(
             status_code=400,
             detail=f"Direct token login not supported for '{body.provider}'. Use the /authorize flow instead.",
+        )
+
+    if body.provider == "google" and not _is_oauth_credential_configured(
+        settings.GOOGLE_CLIENT_ID
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Google OAuth is not configured on this server.",
         )
 
     profile = await verifier(body.token)
@@ -518,12 +535,26 @@ async def _verify_google_id_token(token: str) -> dict:
     if resp.status_code != 200:
         raise HTTPException(status_code=401, detail="Invalid Google token")
     data = resp.json()
+
+    aud = data.get("aud") or data.get("azp")
+    expected = (settings.GOOGLE_CLIENT_ID or "").strip()
+    if not expected or aud != expected:
+        logger.warning("Rejected Google ID token with unexpected aud=%s", aud)
+        raise HTTPException(status_code=401, detail="Google token audience mismatch")
+
+    iss = (data.get("iss") or "").rstrip("/")
+    if iss not in {"https://accounts.google.com", "accounts.google.com"}:
+        raise HTTPException(status_code=401, detail="Google token issuer mismatch")
+
+    if str(data.get("email_verified", "true")).lower() in {"false", "0"}:
+        raise HTTPException(status_code=401, detail="Google email is not verified")
+
     return {
         "provider_user_id": data["sub"],
         "email": data.get("email"),
         "name": data.get("name", data.get("email", "Google User")),
         "avatar": data.get("picture"),
-        "raw": data,
+        "raw": {"sub": data.get("sub"), "email": data.get("email"), "iss": iss},
     }
 
 
@@ -551,6 +582,7 @@ async def list_providers():
         "env": settings.APP_ENV,
         "frontend_url": settings.FRONTEND_URL,
         "backend_url": settings.BACKEND_URL,
+        "phone_auth_enabled": settings.is_development,
         "providers": available,
     }
 
@@ -566,35 +598,40 @@ async def list_social_accounts(
 # â”€â”€ phone auth (OTP) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _generate_otp() -> str:
-    return f"{random.randint(0, 999999):06d}"
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def _require_phone_auth_enabled() -> None:
+    """Phone OTP has no SMS provider yet — allow only in local development."""
+    if not settings.is_development:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Phone sign-in is disabled until SMS delivery is configured.",
+        )
 
 
 @router.post("/phone/send-otp", status_code=200)
 async def phone_send_otp(body: PhoneLoginRequest):
+    _require_phone_auth_enabled()
     code = _generate_otp()
     _otp_store[body.phone] = {
         "code": code,
         "expires_at": time.time() + OTP_TTL_SECONDS,
         "attempts": 0,
     }
-    # Real SMS providers should be wired here for staging/production.
-    if settings.is_development:
-        logger.info("OTP for %s: %s", body.phone, code)
-    else:
-        logger.info("OTP generated for %s (value not logged outside development)", body.phone)
+    # Development only: log + return OTP. Never log OTP values outside development.
+    logger.info("Dev OTP issued for phone ending %s", body.phone[-4:] if len(body.phone) >= 4 else "????")
 
-    payload = {
+    return {
         "message": "OTP sent successfully",
         "expires_in_seconds": OTP_TTL_SECONDS,
+        "dev_otp": code,
     }
-    # Never expose OTPs outside local development
-    if settings.is_development:
-        payload["dev_otp"] = code
-    return payload
 
 
 @router.post("/phone/verify", response_model=TokenResponse)
 async def phone_verify(body: PhoneVerifyRequest):
+    _require_phone_auth_enabled()
     entry = _otp_store.get(body.phone)
     if not entry:
         raise HTTPException(status_code=400, detail="No OTP requested for this number. Send OTP first.")

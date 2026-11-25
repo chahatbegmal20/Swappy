@@ -62,14 +62,17 @@ export function SocialAuth() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState("");
   const [providers, setProviders] = useState<Record<string, ProviderInfo> | null>(null);
+  const [phoneAuthEnabled, setPhoneAuthEnabled] = useState(false);
 
   const loadProviders = useCallback(async () => {
     try {
       const result = await api.getSocialProviders();
-      setProviders(result);
+      setProviders(result.providers);
+      setPhoneAuthEnabled(result.phone_auth_enabled);
       return result;
     } catch (err) {
       setProviders(null);
+      setPhoneAuthEnabled(false);
       throw err;
     }
   }, []);
@@ -202,14 +205,16 @@ export function SocialAuth() {
             </div>
           </div>
 
-          <button
-            onClick={() => setMode("phone-entry")}
-            disabled={!!loading}
-            className="flex w-full items-center gap-3 rounded-lg border border-atelier bg-surface-raised/50 px-4 py-3 text-sm font-medium text-pearl transition-colors hover:bg-surface-raised/60 disabled:opacity-50"
-          >
-            <Phone className="h-5 w-5 flex-shrink-0 text-green-400" />
-            <span className="flex-1 text-left">Continue with Phone Number</span>
-          </button>
+          {phoneAuthEnabled && (
+            <button
+              onClick={() => setMode("phone-entry")}
+              disabled={!!loading}
+              className="flex w-full items-center gap-3 rounded-lg border border-atelier bg-surface-raised/50 px-4 py-3 text-sm font-medium text-pearl transition-colors hover:bg-surface-raised/60 disabled:opacity-50"
+            >
+              <Phone className="h-5 w-5 flex-shrink-0 text-green-400" />
+              <span className="flex-1 text-left">Continue with Phone Number</span>
+            </button>
+          )}
         </>
       )}
 

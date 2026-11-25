@@ -20,6 +20,8 @@ services:
         value: staging
       - key: APP_DEBUG
         value: "false"
+      # Staging demos only. Production ECS/Render MUST set ALLOW_MOCK_STORAGE=false
+      # (API refuses to boot in APP_ENV=production when this is true).
       - key: ALLOW_MOCK_STORAGE
         value: "true"
       - key: MONGO_DB_NAME

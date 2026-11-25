@@ -234,9 +234,13 @@ class ApiClient {
     });
   }
 
-  async getSocialProviders(): Promise<
-    Record<string, { configured: boolean; authorize_url: string; redirect_uri?: string }>
-  > {
+  async getSocialProviders(): Promise<{
+    providers: Record<
+      string,
+      { configured: boolean; authorize_url: string; redirect_uri?: string }
+    >;
+    phone_auth_enabled: boolean;
+  }> {
     type ProviderInfo = {
       configured: boolean;
       authorize_url: string;
@@ -244,7 +248,11 @@ class ApiClient {
     };
 
     const payload = await this.request<
-      Record<string, ProviderInfo> | { providers: Record<string, ProviderInfo> }
+      | Record<string, ProviderInfo>
+      | {
+          providers: Record<string, ProviderInfo>;
+          phone_auth_enabled?: boolean;
+        }
     >("/api/v1/auth/social/providers");
 
     if (
@@ -254,10 +262,18 @@ class ApiClient {
       payload.providers &&
       typeof payload.providers === "object"
     ) {
-      return payload.providers as Record<string, ProviderInfo>;
+      return {
+        providers: payload.providers as Record<string, ProviderInfo>,
+        phone_auth_enabled: Boolean(
+          (payload as { phone_auth_enabled?: boolean }).phone_auth_enabled,
+        ),
+      };
     }
 
-    return payload as Record<string, ProviderInfo>;
+    return {
+      providers: payload as Record<string, ProviderInfo>,
+      phone_auth_enabled: false,
+    };
   }
 
   async phoneSendOtp(phone: string): Promise<{

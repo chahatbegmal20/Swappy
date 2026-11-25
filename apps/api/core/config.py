@@ -1,6 +1,5 @@
 import logging
 import os
-import secrets
 from pathlib import Path
 
 from pydantic import field_validator, model_validator
@@ -100,17 +99,14 @@ class Settings(BaseSettings):
             object.__setattr__(self, "BACKEND_URL", render_url)
             logger.info("BACKEND_URL defaulted from RENDER_EXTERNAL_URL=%s", render_url)
 
-        if not self.allow_insecure_defaults:
+        # Staging/production must supply a stable JWT_SECRET via host env / secrets manager.
+        # Do NOT mint ephemeral secrets here — that masked missing config and broke multi-task auth.
+        if self.allow_insecure_defaults:
             jwt = self.JWT_SECRET.strip()
             if jwt in _INSECURE_JWT_DEFAULTS or len(jwt) < 32:
-                # Prefer an explicit env secret; otherwise mint one so the service can boot.
-                generated = secrets.token_urlsafe(48)
-                object.__setattr__(self, "JWT_SECRET", generated)
                 logger.warning(
-                    "JWT_SECRET was missing/insecure for APP_ENV=%s — generated an ephemeral "
-                    "secret for this process. Set a stable JWT_SECRET in the host env "
-                    "(Render → Environment → Generate) so tokens survive restarts.",
-                    self.APP_ENV,
+                    "JWT_SECRET is the insecure development default. "
+                    "Set a unique 32+ character secret before any shared deploy."
                 )
         return self
 
@@ -165,6 +161,11 @@ class Settings(BaseSettings):
             )
         if self.APP_DEBUG and self.is_production:
             problems.append("APP_DEBUG must be false in production")
+        if self.ALLOW_MOCK_STORAGE and self.is_production:
+            problems.append(
+                "ALLOW_MOCK_STORAGE must be false in production "
+                "(unauthenticated /mock-upload must not be reachable)"
+            )
 
         if problems:
             raise RuntimeError(

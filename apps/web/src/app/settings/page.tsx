@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import {
   User,
@@ -9,7 +8,6 @@ import {
   Globe,
   Languages,
   Shield,
-  AlertTriangle,
   Save,
   Crown,
   KeyRound,
@@ -43,10 +41,7 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  const router = useRouter();
-  const { user, logout } = useAuthStore();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteInput, setDeleteInput] = useState("");
+  const { user } = useAuthStore();
   const [saved, setSaved] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState("");
   const [passwordErr, setPasswordErr] = useState("");
@@ -113,16 +108,6 @@ function SettingsContent() {
     },
     onError: (err) => {
       setPasswordErr(err instanceof Error ? err.message : "Failed to set password");
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      api.setToken(null);
-      logout();
-    },
-    onSuccess: () => {
-      router.replace("/");
     },
   });
 
@@ -316,68 +301,28 @@ function SettingsContent() {
           </CardContent>
         </Card>
 
-        {/* Danger Zone */}
-        <Card className="border-red-900/50 bg-surface">
+        {/* Danger Zone — server-side delete is not implemented yet; do not fake it. */}
+        <Card className="border-atelier bg-surface">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-400">
+            <CardTitle className="flex items-center gap-2 text-muted-atelier">
               <Shield className="h-5 w-5" />
               Danger Zone
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {!showDeleteConfirm ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-pearl">Delete Account</p>
-                  <p className="text-sm text-muted-atelier">
-                    Permanently delete your account and all associated data.
-                  </p>
-                </div>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  Delete Account
-                </Button>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4">
-                <div className="mb-3 flex items-center gap-2 text-red-400">
-                  <AlertTriangle className="h-5 w-5" />
-                  <span className="font-medium">This action is irreversible</span>
-                </div>
-                <p className="mb-4 text-sm text-muted-atelier">
-                  Type <span className="font-mono font-medium text-red-400">delete my account</span> to confirm.
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium text-pearl">Delete Account</p>
+                <p className="text-sm text-muted-atelier">
+                  Account deletion is temporarily disabled until a secure server-side
+                  cascade (user, projects, uploads, scores) ships. Logging out only
+                  clears this device.
                 </p>
-                <Input
-                  value={deleteInput}
-                  onChange={(e) => setDeleteInput(e.target.value)}
-                  placeholder="delete my account"
-                />
-                <div className="mt-4 flex gap-3">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={deleteInput !== "delete my account"}
-                    loading={deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate()}
-                  >
-                    Permanently Delete
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setShowDeleteConfirm(false);
-                      setDeleteInput("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
               </div>
-            )}
+              <Button variant="outline" size="sm" disabled title="Coming soon">
+                Unavailable
+              </Button>
+            </div>
           </CardContent>
         </Card>
     </StudioShell>
