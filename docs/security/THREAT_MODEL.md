@@ -68,3 +68,7 @@ User Agent
 ## Agents / MCP
 
 No agent or MCP backend exists. UI “coming soon” only — out of scope for active attack surface until Phase 3+.
+
+## Cross-origin note (Vercel ↔ ECS)
+
+Bearer tokens in JS tolerate cross-origin easily; **HttpOnly cookies do not** without same-site design. Preferred mitigation: same-origin façade on the frontend host (ADR-002). External Vercel rewrites have ~**120s** to first byte — unsuitable as a pipe for large uploads or slow AI without streaming/async design.

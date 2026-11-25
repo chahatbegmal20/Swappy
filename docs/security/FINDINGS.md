@@ -1,113 +1,140 @@
-# Phase 1 Findings Register
+# Phase 1 Findings Register (revalidated)
 
-Severity: Critical / High / Medium / Low  
-Confidence: Confirmed / Theoretical / Assumption  
+**Branch reviewed:** `security/phase-1-hardening`  
+**Confidence:** Confirmed (source) · Theoretical · Assumption (live infra)  
+**Remediation:** `Fixed on branch` · `Doc only` · `Open` · `Partial`
 
-Legend for **Remediation**: `Fixed on branch` | `Doc/checklist` | `Open (Phase 2+)`
+For each finding: id, severity, confidence, file:lines (approx), behaviour, impact, solution, regression, verification.
 
 ---
 
-## Critical
+## Revalidation of critical questions
+
+See `SECURITY_IMPLEMENTATION_STATUS.md` Step 2. Summary: Google direct login **unused by UI**; phone OTP **blocked outside development on this branch**; mock **still flaggable in staging**; provider tokens **not required**; Redis **unused by API**; agents **stubs**; JWT ephemeral mint **removed**; ownership **OK on private resources**; trends GET **public market cache only**.
+
+---
+
+## Critical (2)
 
 ### C1 — JWT in OAuth callback query string
-- **Confidence:** Confirmed  
-- **Files:** `apps/api/routers/auth.py` (callback redirect); `apps/web/src/app/auth/callback/page.tsx`  
-- **Behaviour:** `?token=<JWT>` returned to browser  
-- **Risk:** History, Referer, logs, screenshots  
-- **Remediation:** Open — see `JWT_MIGRATION_PLAN.md`  
-- **Complexity:** M | **Regression:** OAuth mobile/desktop  
+- **Severity:** Critical · **Confidence:** Confirmed · **Remediation:** Open (migration)  
+- **Files:** `apps/api/routers/auth.py` (~475–481); `apps/web/src/app/auth/callback/page.tsx` (~22–39)  
+- **Behaviour:** Redirect `?token=<JWT>`  
+- **Impact:** History/Referer/log leakage → session theft  
+- **Solution:** One-time code → Mongo session + HttpOnly cookie (`ARCHITECTURE_DECISIONS.md`)  
+- **Regression:** OAuth mobile/desktop redirects  
+- **Verify:** No `token=` in Location; session still works  
 
-### C2 — Unauthenticated mock upload
-- **Confidence:** Confirmed  
-- **Files:** `apps/api/main.py` (`/mock-upload`); `apps/api/core/storage.py`  
-- **Behaviour:** PUT writes under `local_uploads/` when mock allowed  
-- **Risk:** Traversal / disk fill  
-- **Remediation:** **Fixed on branch** — path containment, size cap, 404 when mock off; production boot rejects `ALLOW_MOCK_STORAGE=true`  
-- **Verify:** Prod env checklist; attempt `../` path → 400  
+### C2 — Unauthenticated mock upload when mock enabled
+- **Severity:** Critical · **Confidence:** Confirmed · **Remediation:** Partial  
+- **Files:** `apps/api/main.py` (~98–120); `apps/api/core/storage.py` (~39–80)  
+- **Behaviour:** `PUT /mock-upload/{path}` writes disk; enabled if development **or** `ALLOW_MOCK_STORAGE`  
+- **Impact:** Traversal/DoS/malware drop when mock on  
+- **Solution:** Prod boot forbids mock; path contain + 50 MiB; still need auth or staging mock=off  
+- **Regression:** Local/staging upload without S3  
+- **Verify:** Prod checklist; traversal → 400; mock off → 404  
 
 ---
 
-## High
+## High (11)
 
 ### H1 — JWT in localStorage
-- **Confidence:** Confirmed — `apps/web/src/lib/api.ts`  
-- **Remediation:** Open — `JWT_MIGRATION_PLAN.md`  
+- **Confirmed** · Open · `apps/web/src/lib/api.ts` ~153–167  
+- XSS → full account. Migrate to HttpOnly session.  
 
-### H2 — In-memory OAuth/OTP state
-- **Confidence:** Confirmed — `apps/api/routers/auth.py` `_oauth_state_store`  
-- **Remediation:** Open (Redis)  
+### H2 — In-memory OAuth state / OTP store
+- **Confirmed** · Open · `apps/api/routers/auth.py` ~38–40, 432, 450  
+- Multi-ECS task breaks OAuth. Store state in **Mongo** (not Redis-by-default).  
 
-### H3 — Google ID token without aud
-- **Confidence:** Confirmed  
-- **Remediation:** **Fixed on branch** — `aud`/`iss`/`email_verified` checks  
+### H3 — Google ID token path / audience
+- **Confirmed** · Partial · `auth.py` `_verify_google_id_token`  
+- UI **does not call** `socialLogin`; aud checks added. Prefer **disable endpoint**.  
+- Note: tokeninfo ≠ full JWKS signature verify.  
 
-### H4 — Email auto-link on OAuth
-- **Confidence:** Confirmed — `_find_or_create_social_user`  
-- **Remediation:** Open  
+### H4 — OAuth email auto-link without verification proof
+- **Confirmed** · Open · `auth.py` `_find_or_create_social_user` ~169–193  
+- Account takeover via email collision. Require verified email + explicit link.  
 
-### H5 — `/auth/me` email/phone change without verify
-- **Confidence:** Confirmed  
-- **Remediation:** Open  
+### H5 — `/auth/me` can set email/phone without verify
+- **Confirmed** · Open · `auth.py` ~677–688  
+- Identity hijack. Remove from free PATCH or require challenge.  
 
-### H6 — Public `POST /trends/refresh`
-- **Confidence:** Confirmed  
-- **Remediation:** **Fixed on branch** — `Depends(get_current_user)`  
+### H6 — Public trends refresh
+- **Confirmed** · Fixed on branch · `trends.py` refresh + `Depends(get_current_user)`  
+- Was anonymous DoS/cache wipe.  
 
 ### H7 — Phone OTP incomplete
-- **Confidence:** Confirmed  
-- **Remediation:** **Fixed on branch** — 403 outside development; UI hidden unless `phone_auth_enabled`  
+- **Confirmed** · Fixed on branch · send/verify 403 outside development  
+- Live prod reachability before deploy = Assumption.  
 
-### H8 — Misleading account delete
-- **Confidence:** Confirmed — settings cleared local token only  
-- **Remediation:** **Fixed on branch** — UI disabled until server cascade  
+### H8 — Fake account delete
+- **Confirmed** · Fixed on branch · settings UI disabled  
+- Was client logout only.  
 
-### H9 — OAuth redirect_uri from forwarded Host
-- **Confidence:** Confirmed  
-- **Remediation:** **Fixed on branch** — canonical `BACKEND_URL`  
+### H9 — OAuth redirect_uri from Host / X-Forwarded-*
+- **Confirmed** · Fixed on branch · canonical `BACKEND_URL`  
+- Host-header confusion.  
 
-### H10 — Provider tokens stored in Mongo
-- **Confidence:** Confirmed — `SocialAccount.access_token` / `refresh_token`  
-- **Remediation:** Open  
+### H10 — Provider OAuth tokens stored unused
+- **Confirmed** · Open · `database.py` SocialAccount; write-only in practice  
+- DB breach expands blast radius. Stop storing or encrypt.  
 
 ### H11 — Ephemeral JWT_SECRET minting
-- **Confidence:** Confirmed — former `config.apply_platform_defaults`  
-- **Remediation:** **Fixed on branch** — fail closed in staging/prod  
+- **Confirmed** · Fixed on branch · no longer mints; fail closed  
+- Was masking missing secrets across ECS tasks.  
 
 ---
 
-## Medium
+## Medium (10)
 
-| ID | Issue | Remediation |
-|----|-------|-------------|
-| M1 | No Next.js middleware | Open |
-| M2 | No auth rate limits | Open |
-| M3 | Login enumeration messages | Open |
-| M4 | Email index not unique | Open |
-| M5 | Unsanitized upload filename | Open |
-| M6 | Broad CORS methods/headers | Open (origins OK) |
-| M7 | GitHub Actions static AWS keys | Open (OIDC) |
-| M8 | Thin security tests | Partially improved (URL/JWT/mock tests) |
-| M9 | 24h JWT, no revocation | Open (with migration) |
+### M1 — No Next.js middleware auth  
+Confirmed · Open · UX-only `AuthGuard`  
+
+### M2 — No auth rate limiting  
+Confirmed · Open · login/register/OTP/refresh  
+
+### M3 — User enumeration via login messages  
+Confirmed · Open · `auth.py` login/register detail strings  
+
+### M4 — Email index not unique  
+Confirmed · Open · `database.py` User indexes  
+
+### M5 — Upload filename unsanitized in S3 key  
+Confirmed · Open · `uploads.py` ~34; `PresignRequest`  
+
+### M6 — CORS allow_credentials + broad methods  
+Confirmed · Open · `main.py` ~45–58 · Origins allowlisted  
+
+### M7 — GitHub Actions long-lived AWS keys  
+Confirmed · Open · `publish-api-ecr.yml` · Prefer OIDC  
+
+### M8 — Thin automated security tests  
+Partial · Matrix in `SECURITY_TEST_MATRIX.md`  
+
+### M9 — 24h JWT, no revocation  
+Confirmed · Open · addressed by Option C  
+
+### M10 — Cross-origin Vercel↔ECS complicates cookies  
+Confirmed · Open · ADR-002 same-origin façade  
 
 ---
 
-## Low
+## Low (5)
 
-| ID | Issue | Remediation |
-|----|-------|-------------|
-| L1 | `/social/providers` env recon | Soften later |
-| L2 | Password policy min 8 only | Open |
-| L3 | Agents stub | N/A |
-| L4 | `/health` exposes `env` | Low |
-| L5 | Logging review | **Fixed on branch** — no OTP values / token bodies in logs |
+### L1 — `/social/providers` exposes env URLs · Confirmed · Soften later  
+### L2 — Password policy min length 8 only · Confirmed · Open  
+### L3 — Agents/MCP UI stubs only · Confirmed · N/A attack surface  
+### L4 — `/health` returns `env` · Confirmed · Low recon  
+### L5 — Logging of secrets · Partial fixed · Continue CloudWatch review  
+
+**Count:** 2 Critical + 11 High + 10 Medium + 5 Low = **28 findings**.
 
 ---
 
-## Log review notes (L5 / C1)
+## Already-good controls (not findings)
 
-| Location | Before | After |
-|----------|--------|-------|
-| OAuth success log | Logs redirect path without query (already safe) | Unchanged |
-| Token exchange failure | Logged `resp.text` (may contain secrets) | Status code only |
-| Phone OTP | Logged full OTP in development | Logs phone suffix only; OTP only in JSON `dev_otp` in development |
-| Google aud reject | — | Logs unexpected `aud` value only (not token) |
+- Project/upload/score ownership checks  
+- Production OpenAPI disabled when `is_production`  
+- `.env` gitignored  
+- OAuth `state` via `secrets.token_urlsafe`  
+- `SocialAccountResponse` omits tokens from API responses  

@@ -1,80 +1,80 @@
-# Plan — migrate away from URL JWTs and localStorage
+# Plan — eliminate URL JWTs and localStorage (Mongo sessions)
 
-**Status:** Planning only (Phase 2 implementation)  
-**Related findings:** C1, H1, M9  
+**Status:** Design only — implement after ADR-001/002 approval  
+**Preferred model:** Option C — opaque server-side sessions in **MongoDB** + HttpOnly cookie  
+**Prerequisite:** Same-origin API façade (Vercel → ECS) so cookies are first-party — see `ARCHITECTURE_DECISIONS.md`  
+**Do not:** use URL fragments as permanent bearer delivery; **do not** add Redis only because `REDIS_URL` exists  
 
-## Current behaviour
+---
 
-1. OAuth callback redirects to `/auth/callback?token=<JWT>`  
-2. Client stores JWT in `localStorage.swappy_token`  
-3. Every API call sends `Authorization: Bearer <JWT>`  
-4. Logout only deletes localStorage — server cannot revoke  
+## Current (insecure shape)
 
-## Target behaviour
+```text
+Google → API callback → redirect ?token=JWT → localStorage → Bearer header
+         (no session row, client-only logout)
+```
 
-1. OAuth callback redirects with a **one-time opaque code** (or sets cookie server-side)  
-2. Session established via **HttpOnly; Secure; SameSite=Lax** cookie  
-3. Short-lived access token (5–15 min) + refresh token (rotated, server-side or Redis)  
-4. CSRF defense for cookie-authenticated mutating requests (double-submit or SameSite + origin check)  
-5. Explicit logout hits API revoke endpoint  
+## Target
 
-## Recommended approach (BFF-light)
+```text
+Google → API callback → redirect ?code=one-time
+      → BFF/API exchange → Create Mongo Session → Set-Cookie HttpOnly
+      → Browser calls same-origin /api/* with cookie
+      → Logout deletes Mongo session (immediate revoke)
+```
 
-### Phase 2a — stop query-string JWT (minimal)
+Large uploads continue: **presign → direct PUT to object storage** (never through Vercel body limits).
 
-1. API callback stores JWT (or session id) in Redis keyed by `code = secrets.token_urlsafe(32)`, TTL 60s  
-2. Redirect to `{FRONTEND}/auth/callback?code=…` (no JWT)  
-3. Frontend `POST /api/v1/auth/session/exchange { code }`  
-4. Response sets **HttpOnly cookie** `swappy_session` (or still returns body token temporarily)  
+---
 
-Even if step 4 still returns JSON token once, removing JWT from URLs closes C1 partially.
+## Mongo session document (sketch)
 
-### Phase 2b — HttpOnly session cookie
+```text
+sessions {
+  id: string          # opaque session id (cookie value)
+  user_id: string
+  created_at, expires_at, last_seen_at
+  user_agent_hash?, ip_hash?   # optional device hints
+  revoked: bool
+}
+index: id unique; user_id; expires_at TTL
+```
 
-1. Cookie: `swappy_at` (access) + `swappy_rt` (refresh) or single session id  
-2. Next.js `middleware.ts` optional for UX redirects; **API remains source of truth**  
-3. `api.ts` uses `credentials: "include"` and stops reading localStorage  
-4. CORS stays allowlist; `allow_credentials=true` already set  
+Cookie: `swappy_sid=<id>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=…`  
+(Optionally `Domain=.swappystudio.com` only if API is on a sibling host **without** BFF — prefer BFF same-origin.)
 
-### Phase 2c — revocation & rotation
+---
 
-1. Refresh token family in Redis/Mongo  
-2. Logout deletes server session  
-3. Reduce access TTL from 1440 → ≤15 minutes  
+## Rollout
 
-## Migration steps (rollout)
-
-| Step | Action | Rollback |
+| Step | Change | Rollback |
 |------|--------|----------|
-| 1 | Deploy code exchange + dual-read (cookie **or** Bearer) | Feature flag off |
-| 2 | Switch OAuth redirect to `code=` | Re-enable `token=` flag |
-| 3 | Frontend prefers cookie; stop writing localStorage | Keep Bearer fallback 1 release |
-| 4 | Remove Bearer-from-localStorage path | — |
-| 5 | Force re-login (bump cookie name / JWT `ver` claim) | — |
+| 0 | Deploy same-origin rewrite for `/api/*` JSON | Remove rewrite |
+| 1 | Dual auth: Cookie session **or** Bearer JWT | Flag off cookie |
+| 2 | OAuth issues one-time `code` (Mongo, TTL 60s) instead of JWT in URL | Flag |
+| 3 | Exchange sets cookie; stop writing localStorage | Keep Bearer login temporarily |
+| 4 | Force re-login; remove Bearer-from-localStorage | — |
 
-## Frontend touchpoints
+## CSRF
 
-- `apps/web/src/lib/api.ts` — storage + `fetch` credentials  
-- `apps/web/src/app/auth/callback/page.tsx` — exchange code  
-- `apps/web/src/lib/store.ts` — logout clears cookie via API  
-- `apps/web/src/components/auth-guard.tsx` — rely on `/auth/me` cookie session  
+Same-origin + `SameSite=Lax` + reject mutating requests with bad `Origin`.
 
-## Backend touchpoints
+## Vercel constraints (why not proxy everything)
 
-- `apps/api/routers/auth.py` — callback, exchange, logout, refresh  
-- `apps/api/core/security.py` — read cookie or Bearer  
-- Redis (existing `REDIS_URL`) for one-time codes + refresh  
+- External rewrite ~**120s** to first byte  
+- Function body default **4.5 MB** (20 MiB beta)  
+→ Videos and long AI: signed URLs / async jobs, not Next proxy bodies  
 
 ## Verification
 
-- [ ] OAuth Location header contains no JWT  
-- [ ] Application tab: HttpOnly cookie present; no `swappy_token` in localStorage  
-- [ ] XSS proof-of-concept cannot `fetch` token from JS  
-- [ ] Logout invalidates refresh; reuse → 401  
-- [ ] Cross-site POST without CSRF token rejected  
+- [ ] OAuth redirect URL has `code=` only  
+- [ ] No `swappy_token` in localStorage  
+- [ ] Cookie HttpOnly; `/auth/me` works credentialed same-origin  
+- [ ] Logout → immediate 401 on next API call  
+- [ ] Direct ECS origin without cookie still rejects browser credentialed calls as designed  
 
-## Out of scope for this plan
+## Teaching note
 
-- Full passkey / WebAuthn  
-- Device binding  
-- Agents/MCP auth (separate design when agents ship)  
+**Stateless JWT** = “prove who you are with a signed card.” Lost card works until expiry.  
+**Server session** = “hotel keycard checked against the front desk.” Desk can cancel immediately.  
+HttpOnly means the keycard is in a locked wallet JavaScript cannot open (XSS-resistant for token theft).  

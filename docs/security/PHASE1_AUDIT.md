@@ -1,55 +1,40 @@
 # Phase 1 — SwappyStudio Security Audit
 
 **Branch:** `security/phase-1-hardening`  
-**Mode:** Read-only analysis + immediate hardening applied on this branch  
-**Date:** 2026-11-25  
-
-## Scope
-
-Full monorepo: Next.js web, FastAPI API, Mongo models, CI/CD, deploy docs. No secret values recorded here.
+**Documentation approval:** Granted (Phase 1.5 brief)  
+**Application code:** Further changes **await explicit approval**  
 
 ## Executive summary
 
-The product auth loop (Google OAuth → JWT → owned projects) is real, but several **confirmed** issues needed Phase‑1 hardening:
+Swappy’s foundation (OAuth, bcrypt passwords, per-user project ownership) is real. Confirmed weaknesses centre on **credential delivery** (JWT in URL + localStorage), **optional mock upload**, **incomplete phone auth**, **public expensive mutations** (trends refresh — mitigated on branch), and **cross-origin** Vercel↔ECS topology that blocks safe HttpOnly cookies without a same-origin façade.
 
-| Priority | Status after this branch |
-|----------|---------------------------|
-| JWT in URL query + localStorage | Documented; migration plan in `JWT_MIGRATION_PLAN.md` (not yet implemented) |
-| Unauthenticated mock upload | Contained + production boot rejects `ALLOW_MOCK_STORAGE=true` |
-| Public trends refresh | Now requires Bearer auth |
-| Phone OTP without SMS | Disabled outside `APP_ENV=development` |
-| Google direct ID token `aud` | Validated against `GOOGLE_CLIENT_ID` |
-| OAuth `redirect_uri` from Host headers | Now canonical `BACKEND_URL` only |
-| Misleading account delete UI | Disabled with clear copy |
-| Ephemeral JWT minting | Removed — staging/prod fail closed |
-| Live ECS env verification | **Blocked** — AWS credentials expired in audit environment |
+**28 findings** are registered in `FINDINGS.md` (2 Critical, 11 High, 10 Medium, 5 Low), with revalidation notes in `SECURITY_IMPLEMENTATION_STATUS.md`.
 
-## Trust boundaries
+## Preferred target architecture (pending approval)
 
-1. Browser ↔ Vercel (Next.js) — no middleware auth  
-2. Browser ↔ ECS/API — Bearer JWT, CORS allowlist  
-3. API ↔ Google / IG / X — OAuth code + client secret  
-4. API ↔ MongoDB Atlas — PII, OAuth tokens, content metadata  
-5. API ↔ S3/R2 or `/mock-upload` — object bytes  
-6. GitHub Actions ↔ AWS ECR — long-lived access keys (follow-up: OIDC)
+1. **Option C** — opaque MongoDB sessions + HttpOnly cookies (`ARCHITECTURE_DECISIONS.md`)  
+2. **Same-origin** browser API via Vercel rewrite/BFF to ECS — **do not** proxy large media or unbounded AI bodies (Vercel ~120s proxy TTFB; ~4.5 MB function bodies)  
+3. Uploads remain **presigned → direct object storage**
 
-## Positive controls already present
+## Document index
 
-- Project / upload / score ownership checks via `user_id`
-- Production OpenAPI docs disabled when `APP_ENV=production`
-- Runtime config validation for HTTPS URLs + JWT length
-- `.env` gitignored; OAuth `state` uses `secrets.token_urlsafe`
-- `SocialAccountResponse` does not return provider tokens to the client
+| Doc | Role |
+|-----|------|
+| [THREAT_MODEL.md](./THREAT_MODEL.md) | STRIDE |
+| [FINDINGS.md](./FINDINGS.md) | Full finding sheets |
+| [REQUEST_LIFECYCLE.md](./REQUEST_LIFECYCLE.md) | Google → project |
+| [ASSET_INVENTORY.md](./ASSET_INVENTORY.md) | Assets & entry points |
+| [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) | A/B/C + BFF ADR |
+| [PHASE1_5_CONTAINMENT_PLAN.md](./PHASE1_5_CONTAINMENT_PLAN.md) | Minimal containment + teach-back |
+| [SECURITY_IMPLEMENTATION_STATUS.md](./SECURITY_IMPLEMENTATION_STATUS.md) | Revalidation & status |
+| [SECURITY_TEST_MATRIX.md](./SECURITY_TEST_MATRIX.md) | Tests |
+| [JWT_MIGRATION_PLAN.md](./JWT_MIGRATION_PLAN.md) | Session migration |
+| [PROD_ENV_VERIFICATION.md](./PROD_ENV_VERIFICATION.md) | Live env checklist |
 
-## Related documents
+## What was already changed on this branch (pre–1.5)
 
-- [THREAT_MODEL.md](./THREAT_MODEL.md) — STRIDE  
-- [FINDINGS.md](./FINDINGS.md) — full finding sheets  
-- [REQUEST_LIFECYCLE.md](./REQUEST_LIFECYCLE.md) — Google → project  
-- [ASSET_INVENTORY.md](./ASSET_INVENTORY.md) — assets & entry points  
-- [PROD_ENV_VERIFICATION.md](./PROD_ENV_VERIFICATION.md) — checklist for live hosts  
-- [JWT_MIGRATION_PLAN.md](./JWT_MIGRATION_PLAN.md) — leave URL/localStorage JWTs  
+Containment code for phone OTP gate, trends refresh auth, canonical OAuth URI, Google aud checks, mock path/size + prod mock ban, JWT fail-closed, delete UI disable, log scrubbing — see status map. **Do not treat that as full Phase 2.**
 
-## Approval gate
+## Safeguards
 
-Phase 2 (cookie sessions, Redis OAuth state, account delete API, GitHub OIDC) should not start until product owner signs off on this package.
+No production deploy, AWS mutation, DB wipe, credential rotation, or Redis introduction from this documentation step.
