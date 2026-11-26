@@ -59,7 +59,8 @@ def test_staging_rejects_insecure_jwt_secret(monkeypatch):
         settings.validate_for_runtime()
 
 
-def test_staging_rejects_mock_storage_flag(monkeypatch):
+def test_staging_ignores_mock_storage_flag(monkeypatch):
+    """Staging may still have ALLOW_MOCK_STORAGE=true in env; behaviour must stay off."""
     monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
     settings = Settings(
         APP_ENV="staging",
@@ -72,8 +73,7 @@ def test_staging_rejects_mock_storage_flag(monkeypatch):
         S3_BUCKET="swappy-staging-uploads",
     )
     assert settings.allow_mock_storage is False
-    with pytest.raises(RuntimeError, match="ALLOW_MOCK_STORAGE"):
-        settings.validate_for_runtime()
+    settings.validate_for_runtime()  # must not refuse boot — operators need OAuth deploys
 
 
 def test_production_rejects_localhost_frontend():
