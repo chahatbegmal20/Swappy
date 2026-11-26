@@ -26,7 +26,8 @@ def test_get_frontend_base_uses_configured_frontend_url_not_api_host():
     assert _get_frontend_base(request=request) == settings.FRONTEND_URL.rstrip("/")
 
 
-def test_get_redirect_uri_uses_request_host_when_available():
+def test_get_redirect_uri_uses_canonical_backend_url_not_forwarded_host():
+    """OAuth redirect_uri must ignore Host / X-Forwarded-* and use BACKEND_URL."""
     scope = {
         "type": "http",
         "method": "GET",
@@ -34,13 +35,14 @@ def test_get_redirect_uri_uses_request_host_when_available():
         "headers": [
             (b"host", b"swappy.internal:8000"),
             (b"x-forwarded-proto", b"https"),
-            (b"x-forwarded-host", b"swappy.example.com"),
+            (b"x-forwarded-host", b"evil.example.com"),
         ],
         "query_string": b"",
         "server": ("127.0.0.1", 8000),
     }
     request = Request(scope)
-    assert (
-        _get_redirect_uri("google", request=request)
-        == "https://swappy.example.com/api/v1/auth/social/google/callback"
+    expected = (
+        f"{settings.BACKEND_URL.rstrip('/')}"
+        "/api/v1/auth/social/google/callback"
     )
+    assert _get_redirect_uri("google", request=request) == expected

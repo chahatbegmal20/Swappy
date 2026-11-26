@@ -113,6 +113,7 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "S3_SECRET_KEY", "")
                 object.__setattr__(self, "S3_FORCE_PATH_STYLE", False)
 
+        # Never mint ephemeral JWT secrets — that breaks Google login across ECS tasks.
         if self.allow_insecure_defaults:
             jwt = self.JWT_SECRET.strip()
             if jwt in _INSECURE_JWT_DEFAULTS or len(jwt) < 32:
@@ -186,13 +187,17 @@ class Settings(BaseSettings):
             )
         if self.APP_DEBUG and self.is_production:
             problems.append("APP_DEBUG must be false in production")
+        # Mock is already ignored outside development (see allow_mock_storage).
+        # Warn instead of refusing boot so OAuth/security deploys are not blocked
+        # while operators finish S3 cutover.
         if self.ALLOW_MOCK_STORAGE:
-            problems.append(
-                "ALLOW_MOCK_STORAGE must be false outside local development "
-                "(uploads must use private S3/R2 — never the ECS container disk)"
+            logger.error(
+                "ALLOW_MOCK_STORAGE=true is set but mock disk uploads are disabled "
+                "outside local development. Set ALLOW_MOCK_STORAGE=false and configure "
+                "S3_BUCKET + task IAM role (see docs/security/STORAGE_CUTOVER.md)."
             )
-        if not (self.S3_BUCKET or "").strip():
-            problems.append("S3_BUCKET must be set for staging/production object storage")
+        if self.is_production and not (self.S3_BUCKET or "").strip():
+            problems.append("S3_BUCKET must be set for production object storage")
 
         if problems:
             raise RuntimeError(
